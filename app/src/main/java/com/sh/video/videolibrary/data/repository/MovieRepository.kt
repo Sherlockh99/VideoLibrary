@@ -7,6 +7,7 @@ import com.sh.video.videolibrary.data.local.CategoryDao
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.DatabaseProvider
 import com.sh.video.videolibrary.data.local.MovieCategoryDao
+import com.sh.video.videolibrary.data.local.MovieCategoryEntity
 import com.sh.video.videolibrary.data.local.MovieDao
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.FileDao
@@ -217,12 +218,14 @@ class MovieRepository(
 
     private suspend fun exportMoviesToStream(outputStream: java.io.OutputStream, movies: List<MovieEntity>) {
         val storages = storageDao.getAllSync()
+        val categories = categoryDao.getAllSync()
         val data = ExportFormat(
             format = "videolibrary",
             version = 1,
             exportedAt = DateTimeFormatter.ISO_INSTANT.format(Instant.now()),
             source = "android",
             storages = storages.map { ExportFormat.StorageExport(id = it.id.toInt(), name = it.name) },
+            categories = categories.map { ExportFormat.CategoryExport(name = it.name) },
             movies = movies.map { m ->
                 val filesData = getFilesByMovieId(m.id).map { fws ->
                     ExportFormat.FileExport(
@@ -231,6 +234,7 @@ class MovieRepository(
                         storageNames = fws.storageNames
                     )
                 }
+                val categoryNames = getCategoriesByMovieId(m.id).map { it.name }
                 ExportFormat.MovieExport(
                     tmdbId = m.tmdbId.toInt(),
                     title = m.title,
@@ -241,6 +245,7 @@ class MovieRepository(
                     releaseDate = m.releaseDate,
                     posterPath = m.posterPath,
                     personalRating = m.personalRating,
+                    categoryNames = categoryNames.ifEmpty { null },
                     files = filesData
                 )
             }
@@ -255,6 +260,11 @@ class MovieRepository(
         for (s in data.storages.orEmpty()) {
             if (storageDao.getByName(s.name) == null) {
                 storageDao.insert(StorageEntity(name = s.name))
+            }
+        }
+        for (c in data.categories.orEmpty()) {
+            if (categoryDao.getByName(c.name) == null) {
+                categoryDao.insert(CategoryEntity(name = c.name))
             }
         }
 
@@ -281,12 +291,18 @@ class MovieRepository(
                         )
                         movieDao.update(updated)
                         fileDao.deleteByMovieId(existing.id)
+                        movieCategoryDao.deleteByMovieId(existing.id)
                         for (f in filesData) {
                             val fileId = fileDao.insert(FileEntity(name = f.name, size = f.size.toLong(), movieId = existing.id))
                             for (sn in f.storageNames.orEmpty()) {
                                 storageDao.getByName(sn)?.let { storage ->
                                     storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storage.id))
                                 }
+                            }
+                        }
+                        for (cn in m.categoryNames.orEmpty()) {
+                            categoryDao.getByName(cn)?.let { cat ->
+                                movieCategoryDao.insert(MovieCategoryEntity(movieId = existing.id, categoryId = cat.id))
                             }
                         }
                         added++
@@ -314,6 +330,11 @@ class MovieRepository(
                     storageDao.getByName(sn)?.let { storage ->
                         storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storage.id))
                     }
+                }
+            }
+            for (cn in m.categoryNames.orEmpty()) {
+                categoryDao.getByName(cn)?.let { cat ->
+                    movieCategoryDao.insert(MovieCategoryEntity(movieId = id, categoryId = cat.id))
                 }
             }
             added++

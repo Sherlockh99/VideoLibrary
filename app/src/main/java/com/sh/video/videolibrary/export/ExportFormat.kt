@@ -13,10 +13,15 @@ data class ExportFormat(
     val exportedAt: String,
     val source: String = "android",
     val storages: List<StorageExport>? = null,
+    val categories: List<CategoryExport>? = null,
     val movies: List<MovieExport>
 ) {
     data class StorageExport(
         val id: Int,
+        val name: String
+    )
+
+    data class CategoryExport(
         val name: String
     )
 
@@ -31,6 +36,7 @@ data class ExportFormat(
         @SerializedName("poster_path") val posterPath: String?,
         @SerializedName("personal_rating") val personalRating: Int?,
         @SerializedName("storage_names") val storageNames: List<String>? = null,
+        @SerializedName("category_names") val categoryNames: List<String>? = null,
         val files: List<FileExport>? = null
     )
 
