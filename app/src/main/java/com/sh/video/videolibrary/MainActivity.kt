@@ -26,6 +26,7 @@ import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
 import com.sh.video.videolibrary.ui.screens.AboutScreen
+import com.sh.video.videolibrary.ui.screens.CategoriesScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onCollectionClick = { navController.navigate("library") },
                                 onStoragesClick = { navController.navigate("storages") },
+                                onCategoriesClick = { navController.navigate("categories") },
                                 onSettingsClick = { navController.navigate("settings") },
                                 onAboutClick = { navController.navigate("about") }
                             )
@@ -84,6 +86,12 @@ class MainActivity : ComponentActivity() {
                                     viewModel.selectMovie(movie)
                                     navController.navigate("detail")
                                 },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("categories") {
+                            CategoriesScreen(
+                                viewModel = viewModel,
                                 onBack = { navController.popBackStack() }
                             )
                         }

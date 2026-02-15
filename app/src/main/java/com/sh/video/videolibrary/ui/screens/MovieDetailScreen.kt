@@ -69,6 +69,8 @@ fun MovieDetailScreen(
     var selectedRating by remember(movie.id) { mutableStateOf(movie.personalRating ?: 0) }
     val movieFiles by viewModel.movieFiles.collectAsState()
     val storages by viewModel.storages.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val movieCategories by viewModel.movieCategories.collectAsState()
     var showAddFileDialog by remember { mutableStateOf(false) }
     var editingFile by remember { mutableStateOf<FileWithStorages?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -131,6 +133,11 @@ fun MovieDetailScreen(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
                     text = { Text("Файлы") }
+                )
+                Tab(
+                    selected = selectedTabIndex == 2,
+                    onClick = { selectedTabIndex = 2 },
+                    text = { Text("Категории") }
                 )
             }
 
@@ -293,6 +300,57 @@ fun MovieDetailScreen(
                             }
                             IconButton(onClick = { fileToDelete = fws }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                            }
+                        }
+                    }
+                }
+                2 -> Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 16.dp)
+                ) {
+                    Text("Категории", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Отметьте категории для этого фильма. Добавить новые — в разделе Категории на главном экране.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    if (categories.isEmpty()) {
+                        Text(
+                            "Нет категорий. Добавьте их в разделе Категории.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        val linkedCategoryIds = movieCategories.map { it.id }.toSet()
+                        categories.forEach { category ->
+                            val isLinked = category.id in linkedCategoryIds
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val newIds = if (isLinked) {
+                                            linkedCategoryIds - category.id
+                                        } else {
+                                            linkedCategoryIds + category.id
+                                        }
+                                        viewModel.setMovieCategories(movie.id, newIds.toList())
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isLinked,
+                                    onCheckedChange = { checked ->
+                                        val newIds = if (checked == true) {
+                                            linkedCategoryIds + category.id
+                                        } else {
+                                            linkedCategoryIds - category.id
+                                        }
+                                        viewModel.setMovieCategories(movie.id, newIds.toList())
+                                    }
+                                )
+                                Text(category.name)
                             }
                         }
                     }

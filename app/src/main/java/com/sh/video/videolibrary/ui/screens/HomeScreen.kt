@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalMovies
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onCollectionClick: () -> Unit,
     onStoragesClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onAboutClick: () -> Unit = {}
 ) {
@@ -76,6 +78,13 @@ fun HomeScreen(
             subtitle = "Диски и места хранения файлов",
             icon = Icons.Default.Folder,
             onClick = onStoragesClick
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        HomeLinkCard(
+            title = "Категории",
+            subtitle = "Характеристики и метки для фильмов",
+            icon = Icons.Default.Category,
+            onClick = onCategoriesClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(

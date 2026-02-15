@@ -8,14 +8,23 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [MovieEntity::class, StorageEntity::class, FileEntity::class, StorageFileEntity::class],
-    version = 3
+    entities = [
+        MovieEntity::class,
+        StorageEntity::class,
+        FileEntity::class,
+        StorageFileEntity::class,
+        CategoryEntity::class,
+        MovieCategoryEntity::class
+    ],
+    version = 4
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun movieDao(): MovieDao
     abstract fun storageDao(): StorageDao
     abstract fun fileDao(): FileDao
     abstract fun storageFileDao(): StorageFileDao
+    abstract fun categoryDao(): CategoryDao
+    abstract fun movieCategoryDao(): MovieCategoryDao
 }
 
 private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -69,6 +78,28 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL
+            )
+        """)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS movie_categories (
+                movieId INTEGER NOT NULL,
+                categoryId INTEGER NOT NULL,
+                PRIMARY KEY(movieId, categoryId),
+                FOREIGN KEY(movieId) REFERENCES movies(id) ON DELETE CASCADE,
+                FOREIGN KEY(categoryId) REFERENCES categories(id) ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_movie_categories_movieId ON movie_categories(movieId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_movie_categories_categoryId ON movie_categories(categoryId)")
+    }
+}
+
 object DatabaseProvider {
     private var _database: AppDatabase? = null
 
@@ -78,7 +109,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "videolibrary.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
             .also { _database = it }
     }

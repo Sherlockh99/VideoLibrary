@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
+import com.sh.video.videolibrary.data.repository.CategoryWithMovieCount
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.repository.StorageWithFileCount
+import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
@@ -127,6 +129,17 @@ class MainViewModel(context: Context) : ViewModel() {
     val storagesWithFileCounts: StateFlow<List<StorageWithFileCount>> =
         repository.getStoragesWithFileCounts()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val categoriesWithMovieCounts: StateFlow<List<CategoryWithMovieCount>> =
+        repository.getCategoriesWithMovieCounts()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val categories: StateFlow<List<CategoryEntity>> =
+        repository.getAllCategories()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _categoryRemoveError = MutableStateFlow<String?>(null)
+    val categoryRemoveError = _categoryRemoveError.asStateFlow()
 
     private val _storageRemoveError = MutableStateFlow<String?>(null)
     val storageRemoveError = _storageRemoveError.asStateFlow()
@@ -247,6 +260,47 @@ class MainViewModel(context: Context) : ViewModel() {
         _storageRemoveError.value = null
     }
 
+    fun addCategory(name: String) {
+        viewModelScope.launch {
+            repository.addCategory(name)
+        }
+    }
+
+    fun updateCategory(id: Long, name: String) {
+        viewModelScope.launch {
+            repository.updateCategory(id, name)
+        }
+    }
+
+    fun removeCategory(id: Long) {
+        viewModelScope.launch {
+            _categoryRemoveError.value = null
+            if (!repository.removeCategory(id)) {
+                _categoryRemoveError.value = "Нельзя удалить: к категории привязаны фильмы"
+            }
+        }
+    }
+
+    fun clearCategoryRemoveError() {
+        _categoryRemoveError.value = null
+    }
+
+    private val _movieCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
+    val movieCategories = _movieCategories.asStateFlow()
+
+    fun loadMovieCategories(movieId: Long) {
+        viewModelScope.launch {
+            _movieCategories.value = repository.getCategoriesByMovieId(movieId)
+        }
+    }
+
+    fun setMovieCategories(movieId: Long, categoryIds: List<Long>) {
+        viewModelScope.launch {
+            repository.setMovieCategories(movieId, categoryIds)
+            _movieCategories.value = repository.getCategoriesByMovieId(movieId)
+        }
+    }
+
     private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
@@ -287,6 +341,7 @@ class MainViewModel(context: Context) : ViewModel() {
         _selectedMovie.value = movie
         viewModelScope.launch {
             _movieFiles.value = repository.getFilesByMovieId(movie.id)
+            _movieCategories.value = repository.getCategoriesByMovieId(movie.id)
         }
     }
 
@@ -296,6 +351,7 @@ class MainViewModel(context: Context) : ViewModel() {
             if (movie != null) {
                 _selectedMovie.value = movie
                 _movieFiles.value = repository.getFilesByMovieId(movieId)
+                _movieCategories.value = repository.getCategoriesByMovieId(movieId)
                 onSelected?.invoke()
             }
         }
@@ -304,6 +360,7 @@ class MainViewModel(context: Context) : ViewModel() {
     fun clearSelectedMovie() {
         _selectedMovie.value = null
         _movieFiles.value = emptyList()
+        _movieCategories.value = emptyList()
     }
 
     fun setLibraryFilter(filter: LibraryFilter) {

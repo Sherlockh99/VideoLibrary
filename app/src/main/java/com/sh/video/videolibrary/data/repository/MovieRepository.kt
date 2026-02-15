@@ -3,7 +3,10 @@ package com.sh.video.videolibrary.data.repository
 import android.content.Context
 import com.google.gson.Gson
 import com.sh.video.videolibrary.data.local.AppDatabase
+import com.sh.video.videolibrary.data.local.CategoryDao
+import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.DatabaseProvider
+import com.sh.video.videolibrary.data.local.MovieCategoryDao
 import com.sh.video.videolibrary.data.local.MovieDao
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.FileDao
@@ -26,6 +29,8 @@ data class FileWithStorages(val file: FileEntity, val storageNames: List<String>
 
 data class StorageWithFileCount(val storage: StorageEntity, val fileCount: Int)
 
+data class CategoryWithMovieCount(val category: CategoryEntity, val movieCount: Int)
+
 class MovieRepository(
     private val context: Context,
     private val tmdbApi: TmdbApi
@@ -36,6 +41,8 @@ class MovieRepository(
     private val storageDao: StorageDao = db.storageDao()
     private val fileDao: FileDao = db.fileDao()
     private val storageFileDao: StorageFileDao = db.storageFileDao()
+    private val categoryDao: CategoryDao = db.categoryDao()
+    private val movieCategoryDao: MovieCategoryDao = db.movieCategoryDao()
     private val gson = Gson()
 
     fun getAllMovies(): Flow<List<MovieEntity>> = movieDao.getAllFlow()
@@ -90,6 +97,15 @@ class MovieRepository(
         storageDao.getAllFlow().collect { storages ->
             val withCounts = storages.map { s ->
                 StorageWithFileCount(s, storageFileDao.getFileCountByStorageId(s.id))
+            }
+            emit(withCounts)
+        }
+    }
+
+    fun getCategoriesWithMovieCounts(): Flow<List<CategoryWithMovieCount>> = flow {
+        categoryDao.getAllFlow().collect { categories ->
+            val withCounts = categories.map { c ->
+                CategoryWithMovieCount(c, movieCategoryDao.getMovieCountByCategoryId(c.id))
             }
             emit(withCounts)
         }
@@ -155,6 +171,36 @@ class MovieRepository(
         fileDao.update(file.copy(name = name, size = size))
         storageFileDao.deleteByFileId(fileId)
         storageIds.forEach { storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = it)) }
+    }
+
+    // Categories
+    fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllFlow()
+
+    suspend fun getAllCategoriesSync(): List<CategoryEntity> = categoryDao.getAllSync()
+
+    suspend fun addCategory(name: String): Long = categoryDao.insert(CategoryEntity(name = name))
+
+    suspend fun updateCategory(id: Long, name: String) {
+        categoryDao.getById(id)?.let { categoryDao.update(it.copy(name = name)) }
+    }
+
+    suspend fun getMovieCountByCategoryId(categoryId: Long): Int =
+        movieCategoryDao.getMovieCountByCategoryId(categoryId)
+
+    suspend fun removeCategory(id: Long): Boolean {
+        if (movieCategoryDao.getMovieCountByCategoryId(id) > 0) return false
+        categoryDao.deleteById(id)
+        return true
+    }
+
+    suspend fun getCategoriesByMovieId(movieId: Long): List<CategoryEntity> =
+        movieCategoryDao.getCategoriesByMovieId(movieId)
+
+    suspend fun getCategoryIdsByMovieId(movieId: Long): List<Long> =
+        movieCategoryDao.getCategoryIdsByMovieId(movieId)
+
+    suspend fun setMovieCategories(movieId: Long, categoryIds: List<Long>) {
+        movieCategoryDao.setMovieCategories(movieId, categoryIds)
     }
 
     suspend fun exportToOutputStream(outputStream: java.io.OutputStream): Int {
