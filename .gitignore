@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Movie Manager
+movie_manager/.env
+movie_manager/movies.db
