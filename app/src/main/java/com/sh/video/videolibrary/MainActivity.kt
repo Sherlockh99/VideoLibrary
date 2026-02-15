@@ -119,6 +119,10 @@ class MainActivity : ComponentActivity() {
                                     onMovieClick = { movie ->
                                         viewModel.selectMovie(movie)
                                         navController.navigate("detail")
+                                    },
+                                    onAddFromTmdb = {
+                                        viewModel.setPendingCategoryForNewMovie(category.id)
+                                        navController.navigate("search")
                                     }
                                 )
                             }
@@ -179,6 +183,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("tmdb_preview") {
                             val movie by viewModel.selectedTmdbForPreview.collectAsState()
+                            val returnToCategoryId by viewModel.returnToCategoryIdAfterAdd.collectAsState()
                             if (movie != null) {
                                 TmdbMoviePreviewScreen(
                                     movie = movie!!,
@@ -187,7 +192,15 @@ class MainActivity : ComponentActivity() {
                                         viewModel.clearTmdbPreview()
                                         viewModel.clearUiStateError()
                                         navController.popBackStack()
-                                    }
+                                    },
+                                    onMovieAdded = if (returnToCategoryId != null) {
+                                        {
+                                            viewModel.clearReturnToCategoryIdAfterAdd()
+                                            navController.navigate("category/$returnToCategoryId") {
+                                                popUpTo("search") { inclusive = true }
+                                            }
+                                        }
+                                    } else null
                                 )
                             }
                         }

@@ -302,6 +302,12 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _categoryMovies = MutableStateFlow<List<MovieEntity>>(emptyList())
     val categoryMovies = _categoryMovies.asStateFlow()
 
+    private var _pendingCategoryIdForNewMovie: Long? = null
+    private var _currentCategoryId: Long = 0
+
+    private val _returnToCategoryIdAfterAdd = MutableStateFlow<Long?>(null)
+    val returnToCategoryIdAfterAdd = _returnToCategoryIdAfterAdd.asStateFlow()
+
     fun loadMovieCategories(movieId: Long) {
         viewModelScope.launch {
             _movieCategories.value = repository.getCategoriesByMovieId(movieId)
@@ -315,10 +321,45 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun addMovieToCategory(movieId: Long, categoryId: Long) {
+        viewModelScope.launch {
+            val currentIds = repository.getCategoryIdsByMovieId(movieId)
+            if (categoryId !in currentIds) {
+                repository.setMovieCategories(movieId, currentIds + categoryId)
+            }
+            if (categoryId == _currentCategoryId) {
+                _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+            }
+        }
+    }
+
+    fun removeMovieFromCategory(movieId: Long, categoryId: Long) {
+        viewModelScope.launch {
+            val currentIds = repository.getCategoryIdsByMovieId(movieId)
+            repository.setMovieCategories(movieId, currentIds.filter { it != categoryId })
+            if (categoryId == _currentCategoryId) {
+                _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+            }
+        }
+    }
+
     fun loadCategoryMovies(categoryId: Long) {
+        _currentCategoryId = categoryId
         viewModelScope.launch {
             _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
         }
+    }
+
+    fun setPendingCategoryForNewMovie(categoryId: Long) {
+        _pendingCategoryIdForNewMovie = categoryId
+    }
+
+    fun clearPendingCategoryForNewMovie() {
+        _pendingCategoryIdForNewMovie = null
+    }
+
+    fun clearReturnToCategoryIdAfterAdd() {
+        _returnToCategoryIdAfterAdd.value = null
     }
 
     private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
@@ -494,8 +535,17 @@ class MainViewModel(context: Context) : ViewModel() {
     fun addMovie(details: TmdbMovieDetails) {
         viewModelScope.launch {
             val id = repository.addMovie(details)
-            if (id == -1L) _uiState.value = UiState.Error("Фильм уже в коллекции")
-            else {
+            if (id == -1L) {
+                _uiState.value = UiState.Error("Фильм уже в коллекции")
+            } else {
+                _pendingCategoryIdForNewMovie?.let { catId ->
+                    repository.setMovieCategories(id, repository.getCategoryIdsByMovieId(id) + catId)
+                    _returnToCategoryIdAfterAdd.value = catId
+                    _pendingCategoryIdForNewMovie = null
+                    if (catId == _currentCategoryId) {
+                        _categoryMovies.value = repository.getMoviesByCategoryId(catId)
+                    }
+                }
                 _movieAddedSuccess.value = true
             }
         }

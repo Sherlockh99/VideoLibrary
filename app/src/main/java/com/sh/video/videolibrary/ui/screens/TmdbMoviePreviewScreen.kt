@@ -37,7 +37,8 @@ import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 fun TmdbMoviePreviewScreen(
     movie: TmdbMovieDetails,
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onMovieAdded: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val movieAddedSuccess by viewModel.movieAddedSuccess.collectAsState()
@@ -47,7 +48,11 @@ fun TmdbMoviePreviewScreen(
         if (movieAddedSuccess) {
             viewModel.clearTmdbPreview()
             viewModel.clearMovieAddedSuccess()
-            onBack()
+            if (onMovieAdded != null) {
+                onMovieAdded()
+            } else {
+                onBack()
+            }
         }
     }
 
