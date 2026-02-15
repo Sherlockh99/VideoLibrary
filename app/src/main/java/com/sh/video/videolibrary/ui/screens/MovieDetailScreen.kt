@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,8 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.repository.FileWithStorages
@@ -72,6 +77,8 @@ fun MovieDetailScreen(
     val categories by viewModel.categories.collectAsState()
     val movieCategories by viewModel.movieCategories.collectAsState()
     var showAddFileDialog by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var categoryToUnlink by remember { mutableStateOf<CategoryEntity?>(null) }
     var editingFile by remember { mutableStateOf<FileWithStorages?>(null) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var fileToDelete by remember { mutableStateOf<FileWithStorages?>(null) }
@@ -309,50 +316,86 @@ fun MovieDetailScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
-                    Text("Категории", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        "Отметьте категории для этого фильма. Добавить новые — в разделе Категории на главном экране.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    if (categories.isEmpty()) {
-                        Text(
-                            "Нет категорий. Добавьте их в разделе Категории.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    if (categoryToUnlink != null) {
+                        val cat = categoryToUnlink!!
+                        AlertDialog(
+                            onDismissRequest = { categoryToUnlink = null },
+                            title = { Text("Отвязать категорию?") },
+                            text = { Text("Категория «${cat.name}» будет отвязана от этого фильма.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val newIds = movieCategories.map { it.id }.filter { it != cat.id }
+                                    viewModel.setMovieCategories(movie.id, newIds)
+                                    categoryToUnlink = null
+                                }) {
+                                    Text("Отвязать", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { categoryToUnlink = null }) {
+                                    Text("Отмена")
+                                }
+                            }
                         )
-                    } else {
-                        val linkedCategoryIds = movieCategories.map { it.id }.toSet()
-                        categories.forEach { category ->
-                            val isLinked = category.id in linkedCategoryIds
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        val newIds = if (isLinked) {
-                                            linkedCategoryIds - category.id
-                                        } else {
-                                            linkedCategoryIds + category.id
-                                        }
-                                        viewModel.setMovieCategories(movie.id, newIds.toList())
-                                    },
-                                verticalAlignment = Alignment.CenterVertically
+                    }
+                    FilledTonalButton(
+                        onClick = { showAddCategoryDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Добавить категорию")
+                    }
+                    movieCategories.forEach { category ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                category.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            IconButton(
+                                onClick = { categoryToUnlink = category },
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Checkbox(
-                                    checked = isLinked,
-                                    onCheckedChange = { checked ->
-                                        val newIds = if (checked == true) {
-                                            linkedCategoryIds + category.id
-                                        } else {
-                                            linkedCategoryIds - category.id
-                                        }
-                                        viewModel.setMovieCategories(movie.id, newIds.toList())
-                                    }
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Отвязать категорию",
+                                    tint = MaterialTheme.colorScheme.error
                                 )
-                                Text(category.name)
                             }
                         }
+                    }
+                    if (movieCategories.isEmpty()) {
+                        Text(
+                            "Нет привязанных категорий. Нажмите «Добавить категорию».",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    }
+                    if (showAddCategoryDialog) {
+                        AddCategoryDialog(
+                            categories = categories,
+                            linkedCategoryIds = movieCategories.map { it.id }.toSet(),
+                            onDismiss = { showAddCategoryDialog = false },
+                            onSelectCategory = { category ->
+                                val newIds = movieCategories.map { it.id } + category.id
+                                viewModel.setMovieCategories(movie.id, newIds)
+                                showAddCategoryDialog = false
+                            },
+                            onAddAndLink = { name ->
+                                viewModel.addCategoryAndLinkToMovie(movie.id, name)
+                                showAddCategoryDialog = false
+                            }
+                        )
                     }
                 }
             }
@@ -443,6 +486,97 @@ private fun FileDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Отмена")
+            }
+        }
+    )
+}
+
+@Composable
+private fun AddCategoryDialog(
+    categories: List<CategoryEntity>,
+    linkedCategoryIds: Set<Long>,
+    onDismiss: () -> Unit,
+    onSelectCategory: (CategoryEntity) -> Unit,
+    onAddAndLink: (String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var newCategoryName by remember { mutableStateOf("") }
+    val availableCategories = remember(categories, linkedCategoryIds, searchQuery) {
+        val q = searchQuery.trim().lowercase()
+        categories
+            .filter { it.id !in linkedCategoryIds }
+            .filter { q.isEmpty() || it.name.lowercase().contains(q) }
+            .sortedBy { it.name }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Добавить категорию") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Поиск") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newCategoryName,
+                        onValueChange = { newCategoryName = it },
+                        label = { Text("Новая категория") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    TextButton(
+                        onClick = {
+                            if (newCategoryName.isNotBlank()) {
+                                onAddAndLink(newCategoryName.trim())
+                            }
+                        },
+                        enabled = newCategoryName.isNotBlank()
+                    ) {
+                        Text("Создать и добавить")
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Text("Выберите категорию:", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(8.dp))
+                if (availableCategories.isEmpty()) {
+                    Text(
+                        if (searchQuery.isNotBlank()) "Ничего не найдено" else "Нет доступных категорий",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 200.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(availableCategories) { category ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelectCategory(category) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(category.name, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Закрыть")
             }
         }
     )

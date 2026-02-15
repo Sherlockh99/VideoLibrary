@@ -266,6 +266,17 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun addCategoryAndLinkToMovie(movieId: Long, name: String) {
+        viewModelScope.launch {
+            val categoryId = repository.addCategory(name.trim())
+            val currentIds = repository.getCategoryIdsByMovieId(movieId)
+            if (categoryId !in currentIds) {
+                repository.setMovieCategories(movieId, currentIds + categoryId)
+                _movieCategories.value = repository.getCategoriesByMovieId(movieId)
+            }
+        }
+    }
+
     fun updateCategory(id: Long, name: String) {
         viewModelScope.launch {
             repository.updateCategory(id, name)

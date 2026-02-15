@@ -178,7 +178,10 @@ class MovieRepository(
 
     suspend fun getAllCategoriesSync(): List<CategoryEntity> = categoryDao.getAllSync()
 
-    suspend fun addCategory(name: String): Long = categoryDao.insert(CategoryEntity(name = name))
+    suspend fun addCategory(name: String): Long {
+        val existing = categoryDao.getByName(name)
+        return if (existing != null) existing.id else categoryDao.insert(CategoryEntity(name = name))
+    }
 
     suspend fun updateCategory(id: Long, name: String) {
         categoryDao.getById(id)?.let { categoryDao.update(it.copy(name = name)) }
