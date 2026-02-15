@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.local.MovieEntity
+import com.sh.video.videolibrary.data.local.MovieFileWithStorage
+import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.remote.TmdbSearchResponse
 import com.sh.video.videolibrary.data.repository.MovieRepository
@@ -29,6 +31,9 @@ class MainViewModel(context: Context) : ViewModel() {
     val library: StateFlow<List<MovieEntity>> = repository.getAllMovies()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val storages: StateFlow<List<StorageEntity>> = repository.getAllStorages()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
@@ -44,12 +49,52 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _selectedMovie = MutableStateFlow<MovieEntity?>(null)
     val selectedMovie = _selectedMovie.asStateFlow()
 
+    private val _movieFiles = MutableStateFlow<List<MovieFileWithStorage>>(emptyList())
+    val movieFiles = _movieFiles.asStateFlow()
+
     fun selectMovie(movie: MovieEntity) {
         _selectedMovie.value = movie
+        viewModelScope.launch {
+            _movieFiles.value = repository.getMovieFilesByMovieId(movie.id)
+        }
     }
 
     fun clearSelectedMovie() {
         _selectedMovie.value = null
+        _movieFiles.value = emptyList()
+    }
+
+    fun addStorage(name: String) {
+        viewModelScope.launch {
+            repository.addStorage(name)
+        }
+    }
+
+    fun removeStorage(id: Long) {
+        viewModelScope.launch {
+            repository.removeStorage(id)
+        }
+    }
+
+    fun addMovieFile(movieId: Long, storageId: Long) {
+        viewModelScope.launch {
+            if (repository.addMovieFile(movieId, storageId)) {
+                _selectedMovie.value?.let { m ->
+                    if (m.id == movieId) {
+                        _movieFiles.value = repository.getMovieFilesByMovieId(movieId)
+                    }
+                }
+            }
+        }
+    }
+
+    fun removeMovieFile(movieFileId: Long) {
+        viewModelScope.launch {
+            repository.removeMovieFile(movieFileId)
+            _selectedMovie.value?.let { m ->
+                _movieFiles.value = repository.getMovieFilesByMovieId(m.id)
+            }
+        }
     }
 
     fun searchTmdb(query: String) {

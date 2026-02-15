@@ -7,12 +7,14 @@
 - **Поиск на TMDb** — вводите название и выбираете фильм из результатов
 - **Добавление в базу** — сохраняются название, жанры, рейтинг TMDb, описание
 - **Личная оценка** — от 1 до 5 звёзд
+- **Хранилища** — указывайте, на каких дисках/NAS лежат файлы фильмов
 - **Поиск в коллекции** по:
   - названию
   - жанру
   - рейтингу TMDb
   - слову в описании
   - вашей оценке (1–5)
+  - хранилищу (--storage "имя")
 
 ## Установка
 
@@ -41,8 +43,15 @@
 ```
 python main.py add      # Поиск на TMDb и добавление фильма
 python main.py search   # Поиск в своей коллекции
+python main.py search --storage "HDD"  # Поиск с фильтром по хранилищу
 python main.py list     # Показать все фильмы
 python main.py rate <id> <1-5>  # Поставить свою оценку
+python main.py storage add <имя>      # Добавить хранилище
+python main.py storage list           # Список хранилищ
+python main.py storage remove <id>    # Удалить хранилище
+python main.py file add <movie_id> <storage_id|имя>  # Привязать файл к фильму
+python main.py file remove <movie_file_id>           # Удалить привязку
+python main.py file list <movie_id>  # Файлы фильма
 python main.py export [путь]    # Выгрузить в .vlp (совместимо с Android)
 python main.py import <путь> [--replace]  # Загрузить из .vlp
 ```

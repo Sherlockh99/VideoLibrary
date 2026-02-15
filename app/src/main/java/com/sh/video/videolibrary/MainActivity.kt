@@ -26,6 +26,7 @@ import com.sh.video.videolibrary.ui.MainViewModelFactory
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
 import com.sh.video.videolibrary.ui.screens.SearchTmdbScreen
+import com.sh.video.videolibrary.ui.screens.StoragesScreen
 import com.sh.video.videolibrary.ui.theme.VideoLibraryTheme
 
 class MainActivity : ComponentActivity() {
@@ -66,7 +67,14 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("detail")
                                 },
                                 onRequestExport = { exportLauncher.launch("videolibrary_export.vlp") },
-                                onRequestImport = { importLauncher.launch(arrayOf("*/*")) }
+                                onRequestImport = { importLauncher.launch(arrayOf("*/*")) },
+                                onStoragesClick = { navController.navigate("storages") }
+                            )
+                        }
+                        composable("storages") {
+                            StoragesScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("search") {

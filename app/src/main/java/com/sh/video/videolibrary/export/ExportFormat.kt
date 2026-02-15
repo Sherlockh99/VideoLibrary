@@ -12,8 +12,14 @@ data class ExportFormat(
     @SerializedName("exported_at")
     val exportedAt: String,
     val source: String = "android",
+    val storages: List<StorageExport>? = null,
     val movies: List<MovieExport>
 ) {
+    data class StorageExport(
+        val id: Int,
+        val name: String
+    )
+
     data class MovieExport(
         @SerializedName("tmdb_id") val tmdbId: Int,
         val title: String,
@@ -23,6 +29,7 @@ data class ExportFormat(
         val overview: String,
         @SerializedName("release_date") val releaseDate: String,
         @SerializedName("poster_path") val posterPath: String?,
-        @SerializedName("personal_rating") val personalRating: Int?
+        @SerializedName("personal_rating") val personalRating: Int?,
+        @SerializedName("storage_names") val storageNames: List<String>? = null
     )
 }

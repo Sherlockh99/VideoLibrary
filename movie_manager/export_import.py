@@ -8,7 +8,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from database import add_movie, movie_exists, get_all_movies, update_movie_from_import
+from database import (
+    add_movie,
+    movie_exists,
+    get_all_movies,
+    get_all_storages,
+    get_movie_by_tmdb_id,
+    get_storage_by_name,
+    get_storage_names_for_movie,
+    add_storage,
+    add_movie_file,
+    remove_movie_files_by_movie_id,
+    update_movie_from_import,
+)
 
 FORMAT_ID = "videolibrary"
 FORMAT_VERSION = 1
@@ -24,11 +36,14 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
         path = path.with_suffix(".vlp")
 
     movies = get_all_movies()
+    storages = get_all_storages()
+
     data = {
         "format": FORMAT_ID,
         "version": FORMAT_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "source": source,
+        "storages": [{"id": s.id, "name": s.name} for s in storages],
         "movies": [
             {
                 "tmdb_id": m.tmdb_id,
@@ -40,6 +55,7 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
                 "release_date": m.release_date,
                 "poster_path": m.poster_path,
                 "personal_rating": m.personal_rating,
+                "storage_names": get_storage_names_for_movie(m.id),
             }
             for m in movies
         ],
@@ -70,6 +86,13 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
     if version > FORMAT_VERSION:
         raise ValueError(f"Версия формата {version} не поддерживается. Макс: {FORMAT_VERSION}")
 
+    # Создаём хранилища, если есть в файле
+    storages_data = data.get("storages", [])
+    for s in storages_data:
+        name = s.get("name")
+        if name and get_storage_by_name(name) is None:
+            add_storage(name)
+
     movies_data = data.get("movies", [])
     added = 0
     skipped = 0
@@ -91,6 +114,8 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
             "personal_rating": m.get("personal_rating"),
         }
 
+        storage_names = m.get("storage_names", [])
+
         if movie_exists(tmdb_id):
             if replace_duplicates:
                 update_movie_from_import(
@@ -104,12 +129,19 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
                     poster_path=movie_data["poster_path"],
                     personal_rating=movie_data["personal_rating"],
                 )
-                added += 1  # считаем как обновлённый
+                movie = get_movie_by_tmdb_id(tmdb_id)
+                if movie:
+                    remove_movie_files_by_movie_id(movie.id)
+                    for sn in storage_names:
+                        storage = get_storage_by_name(sn)
+                        if storage:
+                            add_movie_file(movie.id, storage.id)
+                added += 1
             else:
                 skipped += 1
             continue
 
-        add_movie(
+        movie_id = add_movie(
             tmdb_id=movie_data["tmdb_id"],
             title=movie_data["title"],
             original_title=movie_data["original_title"],
@@ -120,6 +152,10 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
             poster_path=movie_data["poster_path"],
             personal_rating=movie_data["personal_rating"],
         )
+        for sn in storage_names:
+            storage = get_storage_by_name(sn)
+            if storage:
+                add_movie_file(movie_id, storage.id)
         added += 1
 
     return added, skipped

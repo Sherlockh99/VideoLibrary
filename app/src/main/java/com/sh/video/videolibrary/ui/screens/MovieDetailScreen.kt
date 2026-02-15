@@ -13,6 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,6 +94,57 @@ fun MovieDetailScreen(
             Spacer(Modifier.height(8.dp))
             if (movie.overview.isNotBlank()) {
                 Text(movie.overview, style = MaterialTheme.typography.bodyMedium)
+            }
+            Spacer(Modifier.height(16.dp))
+            val movieFiles by viewModel.movieFiles.collectAsState()
+            val storages by viewModel.storages.collectAsState()
+            var addStorageExpanded by remember { mutableStateOf(false) }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (movieFiles.isEmpty()) "Файлы на: —" else "Файлы на:",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                IconButton(onClick = { addStorageExpanded = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Добавить хранилище")
+                }
+            }
+            DropdownMenu(
+                expanded = addStorageExpanded,
+                onDismissRequest = { addStorageExpanded = false }
+            ) {
+                val usedStorageIds = movieFiles.map { it.storageId }.toSet()
+                storages.filter { it.id !in usedStorageIds }.forEach { storage ->
+                    DropdownMenuItem(
+                        text = { Text(storage.name) },
+                        onClick = {
+                            viewModel.addMovieFile(movie.id, storage.id)
+                            addStorageExpanded = false
+                        }
+                    )
+                }
+                if (storages.filter { it.id !in usedStorageIds }.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("Нет доступных хранилищ") },
+                        onClick = { addStorageExpanded = false }
+                    )
+                }
+            }
+            movieFiles.forEach { mf ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(mf.storageName, style = MaterialTheme.typography.bodyMedium)
+                    IconButton(onClick = { viewModel.removeMovieFile(mf.id) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                    }
+                }
             }
             Spacer(Modifier.height(24.dp))
             Text("Ваша оценка:", style = MaterialTheme.typography.titleMedium)

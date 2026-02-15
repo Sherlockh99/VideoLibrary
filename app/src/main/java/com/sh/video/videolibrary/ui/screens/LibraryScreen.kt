@@ -43,7 +43,8 @@ fun LibraryScreen(
     onAddClick: () -> Unit,
     onMovieClick: (MovieEntity) -> Unit,
     onRequestExport: () -> Unit,
-    onRequestImport: () -> Unit
+    onRequestImport: () -> Unit,
+    onStoragesClick: () -> Unit = {}
 ) {
     val library by viewModel.library.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -57,9 +58,16 @@ fun LibraryScreen(
                 title = { Text("Моя коллекция") },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.FileDownload, contentDescription = "Экспорт/Импорт")
+                        Icon(Icons.Default.FileDownload, contentDescription = "Меню")
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Хранилища") },
+                            onClick = {
+                                menuExpanded = false
+                                onStoragesClick()
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Экспорт в .vlp") },
                             onClick = {

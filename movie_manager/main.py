@@ -6,6 +6,12 @@
     python main.py search       - поиск в своей коллекции
     python main.py list         - показать все фильмы
     python main.py rate <id> <1-5> - поставить свою оценку
+    python main.py storage add <имя> - добавить хранилище
+    python main.py storage list     - список хранилищ
+    python main.py storage remove <id> - удалить хранилище
+    python main.py file add <movie_id> <storage_id/имя> - привязать файл к фильму
+    python main.py file remove <movie_file_id> - удалить привязку
+    python main.py file list <movie_id> - файлы фильма
     python main.py export [путь] - выгрузить коллекцию в .vlp
     python main.py import <путь> - загрузить коллекцию из .vlp
 """
@@ -21,7 +27,17 @@ from database import (
     search_movies,
     get_all_movies,
     get_movie_by_id,
+    get_all_storages,
+    get_storage_by_id,
+    get_storage_by_name,
+    add_storage,
+    remove_storage,
+    add_movie_file,
+    remove_movie_file,
+    get_movie_files_by_movie_id,
+    get_storage_names_for_movie,
     Movie,
+    Storage,
 )
 from export_import import export_to_file, import_from_file
 
@@ -34,8 +50,10 @@ def format_movie_short(idx: int, m: dict) -> str:
     return f"  {idx}. {title} ({year}) — рейтинг: {rating:.1f}"
 
 
-def format_movie_db(m: Movie) -> str:
+def format_movie_db(m: Movie, storage_names: list[str] | None = None) -> str:
     """Представление фильма из базы данных."""
+    if storage_names is None:
+        storage_names = get_storage_names_for_movie(m.id)
     lines = [
         f"  [{m.id}] {m.title} ({m.release_date or '?'})",
         f"      Жанры: {m.genres or '-'}",
@@ -43,6 +61,8 @@ def format_movie_db(m: Movie) -> str:
     ]
     if m.personal_rating:
         lines.append(f"      Ваша оценка: {m.personal_rating}/5")
+    if storage_names:
+        lines.append(f"      Файлы на: {', '.join(storage_names)}")
     if m.overview:
         overview = m.overview[:150] + "..." if len(m.overview) > 150 else m.overview
         lines.append(f"      Описание: {overview}")
@@ -111,8 +131,22 @@ def cmd_add():
     return 0
 
 
+def _parse_storage_arg() -> str | None:
+    """Парсит --storage <имя> из sys.argv."""
+    if "--storage" not in sys.argv:
+        return None
+    idx = sys.argv.index("--storage")
+    if idx + 1 >= len(sys.argv):
+        return None
+    return sys.argv[idx + 1].strip() or None
+
+
 def cmd_search():
     """Поиск фильмов в своей коллекции."""
+    storage_name = _parse_storage_arg()
+    if storage_name:
+        print(f"Фильтр по хранилищу: {storage_name}")
+
     print("Поиск в коллекции (пустое поле = не учитывать)")
     title = input("Название: ").strip() or None
     genre = input("Жанр: ").strip() or None
@@ -151,6 +185,7 @@ def cmd_search():
         max_rating=max_rating,
         description=description,
         personal_rating=personal,
+        storage_name=storage_name,
     )
 
     print(f"\nНайдено: {len(movies)} фильм(ов)")
@@ -213,6 +248,128 @@ def cmd_export() -> int:
     return 0
 
 
+def cmd_storage() -> int:
+    """Управление хранилищами: add, list, remove."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py storage <add|list|remove> [аргументы]")
+        return 1
+
+    sub = sys.argv[2].lower()
+    if sub == "add":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py storage add <имя>")
+            return 1
+        name = sys.argv[3].strip()
+        if not name:
+            print("Имя хранилища не может быть пустым.")
+            return 1
+        sid = add_storage(name)
+        print(f'Хранилище "{name}" добавлено (id={sid}).')
+        return 0
+
+    if sub == "list":
+        storages = get_all_storages()
+        if not storages:
+            print("Нет хранилищ. Добавьте: python main.py storage add <имя>")
+            return 0
+        for s in storages:
+            status = "доступно" if s.is_available else "недоступно"
+            print(f"  [{s.id}] {s.name} ({status})")
+        return 0
+
+    if sub == "remove":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py storage remove <id>")
+            return 1
+        try:
+            sid = int(sys.argv[3])
+        except ValueError:
+            print("ID должен быть числом.")
+            return 1
+        if remove_storage(sid):
+            print("Хранилище удалено.")
+        else:
+            print("Хранилище с таким ID не найдено.")
+        return 0
+
+    print(f"Неизвестная подкоманда: {sub}")
+    return 1
+
+
+def cmd_file() -> int:
+    """Управление привязками файлов: add, remove, list."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py file <add|remove|list> [аргументы]")
+        return 1
+
+    sub = sys.argv[2].lower()
+    if sub == "add":
+        if len(sys.argv) < 5:
+            print("Использование: python main.py file add <movie_id> <storage_id|имя>")
+            return 1
+        try:
+            movie_id = int(sys.argv[3])
+        except ValueError:
+            print("movie_id должен быть числом.")
+            return 1
+        storage_arg = sys.argv[4].strip()
+        try:
+            storage_id = int(storage_arg)
+            storage = get_storage_by_id(storage_id)
+        except ValueError:
+            storage = get_storage_by_name(storage_arg)
+            storage_id = storage.id if storage else None
+        if not storage:
+            print("Хранилище не найдено.")
+            return 1
+        mf_id = add_movie_file(movie_id, storage.id)
+        if mf_id:
+            print(f"Файл фильма [{movie_id}] привязан к хранилищу {storage.name}.")
+        else:
+            print("Эта привязка уже существует.")
+        return 0
+
+    if sub == "remove":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py file remove <movie_file_id>")
+            return 1
+        try:
+            mf_id = int(sys.argv[3])
+        except ValueError:
+            print("movie_file_id должен быть числом.")
+            return 1
+        if remove_movie_file(mf_id):
+            print("Привязка удалена.")
+        else:
+            print("Привязка с таким ID не найдена.")
+        return 0
+
+    if sub == "list":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py file list <movie_id>")
+            return 1
+        try:
+            movie_id = int(sys.argv[3])
+        except ValueError:
+            print("movie_id должен быть числом.")
+            return 1
+        movie = get_movie_by_id(movie_id)
+        if not movie:
+            print("Фильм не найден.")
+            return 1
+        pairs = get_movie_files_by_movie_id(movie_id)
+        if not pairs:
+            print(f"У фильма [{movie_id}] {movie.title} нет привязок к хранилищам.")
+            return 0
+        print(f"Файлы фильма [{movie_id}] {movie.title}:")
+        for mf, s in pairs:
+            print(f"  [mf_id={mf.id}] {s.name}")
+        return 0
+
+    print(f"Неизвестная подкоманда: {sub}")
+    return 1
+
+
 def cmd_import() -> int:
     """Загрузка коллекции из .vlp файла."""
     if len(sys.argv) < 3:
@@ -249,6 +406,10 @@ def main():
         return cmd_list()
     elif cmd == "rate":
         return cmd_rate()
+    elif cmd == "storage":
+        return cmd_storage()
+    elif cmd == "file":
+        return cmd_file()
     elif cmd == "export":
         return cmd_export()
     elif cmd == "import":

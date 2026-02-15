@@ -36,6 +36,10 @@ interface MovieDao {
         AND (:maxRating IS NULL OR rating <= :maxRating)
         AND (:description IS NULL OR overview LIKE '%' || :description || '%')
         AND (:personalRating IS NULL OR personalRating = :personalRating)
+        AND (:storageName IS NULL OR id IN (
+            SELECT movieId FROM movie_files mf 
+            JOIN storages s ON s.id = mf.storageId AND s.name = :storageName
+        ))
         ORDER BY title
     """)
     fun search(
@@ -44,7 +48,8 @@ interface MovieDao {
         minRating: Double?,
         maxRating: Double?,
         description: String?,
-        personalRating: Int?
+        personalRating: Int?,
+        storageName: String? = null
     ): Flow<List<MovieEntity>>
 
     @Query("SELECT * FROM movies ORDER BY title")
