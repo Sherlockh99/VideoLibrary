@@ -9,19 +9,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,8 +46,45 @@ fun StoragesScreen(
 ) {
     val storagesWithCounts by viewModel.storagesWithFileCounts.collectAsState()
     val storageRemoveError by viewModel.storageRemoveError.collectAsState()
-    var newName by remember { mutableStateOf("") }
     var storageToDelete by remember { mutableStateOf<StorageWithFileCount?>(null) }
+    var storageToEdit by remember { mutableStateOf<StorageWithFileCount?>(null) }
+    var showAddStorageDialog by remember { mutableStateOf(false) }
+
+    if (storageToEdit != null) {
+        val item = storageToEdit!!
+        var newName by remember(item) { mutableStateOf(item.storage.name) }
+        AlertDialog(
+            onDismissRequest = { storageToEdit = null },
+            title = { Text("Переименовать хранилище") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Название хранилища") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newName.isNotBlank()) {
+                            viewModel.updateStorage(item.storage.id, newName.trim())
+                            storageToEdit = null
+                        }
+                    },
+                    enabled = newName.isNotBlank() && newName.trim() != item.storage.name
+                ) {
+                    Text("Сохранить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { storageToEdit = null }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 
     if (storageToDelete != null) {
         val item = storageToDelete!!
@@ -85,6 +124,41 @@ fun StoragesScreen(
         )
     }
 
+    if (showAddStorageDialog) {
+        var newName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddStorageDialog = false },
+            title = { Text("Добавить хранилище") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Название хранилища") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newName.isNotBlank()) {
+                            viewModel.addStorage(newName.trim())
+                            showAddStorageDialog = false
+                        }
+                    },
+                    enabled = newName.isNotBlank()
+                ) {
+                    Text("Добавить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddStorageDialog = false }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -96,6 +170,11 @@ fun StoragesScreen(
                 }
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddStorageDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Добавить хранилище")
+            }
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -103,40 +182,12 @@ fun StoragesScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Добавьте хранилища (HDD, SSD, M2…). Файлы фильмов добавляйте в карточке фильма (Моя коллекция → фильм → «Добавить файл»).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("Название хранилища") },
-                    modifier = Modifier.weight(1f)
-                )
-                Button(
-                    onClick = {
-                        if (newName.isNotBlank()) {
-                            viewModel.addStorage(newName.trim())
-                            newName = ""
-                        }
-                    }
-                ) {
-                    Text("Добавить")
-                }
-            }
             if (storageRemoveError != null) {
                 Text(
                     text = storageRemoveError!!,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
             if (storagesWithCounts.isEmpty()) {
@@ -146,7 +197,7 @@ fun StoragesScreen(
                 )
             } else {
                 LazyColumn(
-                    modifier = Modifier.padding(top = 16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(storagesWithCounts) { item ->
@@ -166,6 +217,13 @@ fun StoragesScreen(
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )
                                 }
+                            }
+                            IconButton(onClick = { storageToEdit = item }) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Изменить название",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                             IconButton(onClick = { storageToDelete = item }) {
                                 Icon(

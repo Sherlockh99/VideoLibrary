@@ -328,6 +328,12 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun updateStorage(id: Long, name: String) {
+        viewModelScope.launch {
+            repository.updateStorage(id, name)
+        }
+    }
+
     fun removeStorage(id: Long) {
         viewModelScope.launch {
             _storageRemoveError.value = null

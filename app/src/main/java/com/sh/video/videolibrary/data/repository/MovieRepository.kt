@@ -99,6 +99,10 @@ class MovieRepository(
 
     suspend fun addStorage(name: String): Long = storageDao.insert(StorageEntity(name = name))
 
+    suspend fun updateStorage(id: Long, name: String) {
+        storageDao.getById(id)?.let { storageDao.update(it.copy(name = name)) }
+    }
+
     suspend fun getFileCountByStorageId(storageId: Long): Int =
         storageFileDao.getFileCountByStorageId(storageId)
 
