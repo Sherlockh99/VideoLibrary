@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -100,18 +102,17 @@ fun MovieDetailScreen(
             val storages by viewModel.storages.collectAsState()
             var addStorageExpanded by remember { mutableStateOf(false) }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = if (movieFiles.isEmpty()) "Файлы на: —" else "Файлы на: ${movieFiles.joinToString(", ") { it.storageName }}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            FilledTonalButton(
+                onClick = { addStorageExpanded = true },
+                modifier = Modifier.padding(top = 8.dp)
             ) {
-                Text(
-                    text = if (movieFiles.isEmpty()) "Файлы на: —" else "Файлы на:",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                IconButton(onClick = { addStorageExpanded = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Добавить хранилище")
-                }
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Добавить файл")
             }
             DropdownMenu(
                 expanded = addStorageExpanded,
