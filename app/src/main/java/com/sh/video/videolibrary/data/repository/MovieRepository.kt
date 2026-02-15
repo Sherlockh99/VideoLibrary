@@ -12,6 +12,7 @@ import com.sh.video.videolibrary.data.local.StorageDao
 import com.sh.video.videolibrary.data.local.StorageFileDao
 import com.sh.video.videolibrary.data.local.StorageFileEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
+import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.remote.TmdbApi
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.export.ExportFormat
@@ -54,6 +55,8 @@ class MovieRepository(
     suspend fun searchTmdb(query: String) = tmdbApi.searchMovies(query = query)
 
     suspend fun getTmdbDetails(movieId: Long) = tmdbApi.getMovieDetails(movieId)
+
+    suspend fun getMovieById(id: Long): MovieEntity? = movieDao.getById(id)
 
     suspend fun addMovie(details: TmdbMovieDetails): Long {
         val exists = movieDao.existsByTmdbId(details.id)
@@ -119,6 +122,14 @@ class MovieRepository(
         if (storageFileDao.exists(fileId, storageId) == true) return false
         storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storageId))
         return true
+    }
+
+    suspend fun getFilesByStorageId(storageId: Long): List<FileOnStorageRow> =
+        storageFileDao.getFilesByStorageId(storageId)
+
+    /** Удаляет привязку файла к хранилищу (файл остаётся в карточке фильма). */
+    suspend fun removeFileFromStorage(fileId: Long, storageId: Long) {
+        storageFileDao.deleteByFileIdAndStorageId(fileId, storageId)
     }
 
     suspend fun removeFile(fileId: Long) {

@@ -1,5 +1,6 @@
 package com.sh.video.videolibrary.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +39,8 @@ import com.sh.video.videolibrary.ui.MainViewModel
 @Composable
 fun StoragesScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onStorageClick: (StorageWithFileCount) -> Unit = {}
 ) {
     val storagesWithCounts by viewModel.storagesWithFileCounts.collectAsState()
     val storageRemoveError by viewModel.storageRemoveError.collectAsState()
@@ -149,15 +151,17 @@ fun StoragesScreen(
                 ) {
                     items(storagesWithCounts) { item ->
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onStorageClick(item) },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(item.storage.name)
                                 if (item.fileCount > 0) {
                                     Text(
-                                        text = "Файлов: ${item.fileCount} — нельзя удалить",
+                                        text = "Файлов: ${item.fileCount}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )

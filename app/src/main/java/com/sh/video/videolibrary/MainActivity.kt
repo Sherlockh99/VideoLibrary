@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -20,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
@@ -30,6 +32,7 @@ import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
 import com.sh.video.videolibrary.ui.screens.SearchTmdbScreen
 import com.sh.video.videolibrary.ui.screens.TmdbMoviePreviewScreen
 import com.sh.video.videolibrary.ui.screens.SettingsScreen
+import com.sh.video.videolibrary.ui.screens.StorageDetailScreen
 import com.sh.video.videolibrary.ui.screens.StoragesScreen
 import com.sh.video.videolibrary.ui.theme.VideoLibraryTheme
 
@@ -87,8 +90,37 @@ class MainActivity : ComponentActivity() {
                         composable("storages") {
                             StoragesScreen(
                                 viewModel = viewModel,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onStorageClick = { item ->
+                                    navController.navigate("storage/${item.storage.id}")
+                                }
                             )
+                        }
+                        composable(
+                            route = "storage/{storageId}",
+                            arguments = listOf(navArgument("storageId") { type = androidx.navigation.NavType.LongType })
+                        ) { backStackEntry ->
+                            val storageId = backStackEntry.arguments?.getLong("storageId") ?: 0L
+                            val storages by viewModel.storages.collectAsState()
+                            val storage = storages.find { it.id == storageId }
+                            LaunchedEffect(storages, storageId) {
+                                if (storages.isNotEmpty() && storage == null) {
+                                    navController.popBackStack()
+                                }
+                            }
+                            if (storage != null) {
+                                StorageDetailScreen(
+                                    storage = storage,
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onFileClick = { movieId ->
+                                        viewModel.selectMovieById(movieId) {
+                                            navController.navigate("detail")
+                                        }
+                                    }
+                                )
+                            }
+                            // Если хранилище не найдено (ещё не загружено), остаёмся на экране — LaunchedEffect в деталях подгрузит
                         }
                         composable("settings") {
                             SettingsScreen(

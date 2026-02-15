@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
+import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.data.local.MovieEntity
@@ -33,6 +34,15 @@ enum class LibraryFilter {
     BY_TMDB_RATING,
     BY_PERSONAL_RATING,
     BY_STORAGE
+}
+
+enum class StorageFileFilter {
+    ALL,
+    BY_MOVIE_TITLE,
+    BY_GENRE,
+    BY_TMDB_RATING,
+    BY_PERSONAL_RATING,
+    BY_FILE_NAME
 }
 
 class MainViewModel(context: Context) : ViewModel() {
@@ -121,6 +131,89 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _storageRemoveError = MutableStateFlow<String?>(null)
     val storageRemoveError = _storageRemoveError.asStateFlow()
 
+    private val _storageFiles = MutableStateFlow<List<FileOnStorageRow>>(emptyList())
+    val storageFiles = _storageFiles.asStateFlow()
+
+    private val _storageFileFilter = MutableStateFlow(StorageFileFilter.ALL)
+    val storageFileFilter = _storageFileFilter.asStateFlow()
+
+    private val _storageFileFilterQuery = MutableStateFlow("")
+    val storageFileFilterQuery = _storageFileFilterQuery.asStateFlow()
+
+    private val _storageFileFilterTmdbMinRating = MutableStateFlow<Double?>(null)
+    val storageFileFilterTmdbMinRating = _storageFileFilterTmdbMinRating.asStateFlow()
+
+    private val _storageFileFilterPersonalRating = MutableStateFlow<Int?>(null)
+    val storageFileFilterPersonalRating = _storageFileFilterPersonalRating.asStateFlow()
+
+    val filteredStorageFiles = combine(
+        _storageFiles,
+        _storageFileFilter,
+        _storageFileFilterQuery,
+        _storageFileFilterTmdbMinRating,
+        _storageFileFilterPersonalRating
+    ) { files, filter, query, tmdbMin, personalRating ->
+        when (filter) {
+            StorageFileFilter.ALL -> files
+            StorageFileFilter.BY_MOVIE_TITLE -> {
+                val q = query.trim().lowercase()
+                if (q.isEmpty()) files else files.filter { it.movieTitle.lowercase().contains(q) }
+            }
+            StorageFileFilter.BY_GENRE -> {
+                val q = query.trim().lowercase()
+                if (q.isEmpty()) files else files.filter { it.genres.lowercase().contains(q) }
+            }
+            StorageFileFilter.BY_TMDB_RATING -> {
+                if (tmdbMin == null) files else files.filter { it.rating >= tmdbMin }
+            }
+            StorageFileFilter.BY_PERSONAL_RATING -> {
+                if (personalRating == null) files else files.filter { it.personalRating == personalRating }
+            }
+            StorageFileFilter.BY_FILE_NAME -> {
+                val q = query.trim().lowercase()
+                if (q.isEmpty()) files else files.filter { it.fileName.lowercase().contains(q) }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setStorageFileFilter(filter: StorageFileFilter) {
+        _storageFileFilter.value = filter
+        if (filter == StorageFileFilter.ALL) {
+            _storageFileFilterQuery.value = ""
+            _storageFileFilterTmdbMinRating.value = null
+            _storageFileFilterPersonalRating.value = null
+        }
+    }
+
+    fun setStorageFileFilterTmdbMinRating(rating: Double?) {
+        _storageFileFilterTmdbMinRating.value = rating
+    }
+
+    fun setStorageFileFilterPersonalRating(rating: Int?) {
+        _storageFileFilterPersonalRating.value = rating
+    }
+
+    fun setStorageFileFilterQuery(query: String) {
+        _storageFileFilterQuery.value = query
+    }
+
+    fun loadStorageFiles(storageId: Long) {
+        viewModelScope.launch {
+            _storageFiles.value = repository.getFilesByStorageId(storageId)
+            _storageFileFilter.value = StorageFileFilter.ALL
+            _storageFileFilterQuery.value = ""
+            _storageFileFilterTmdbMinRating.value = null
+            _storageFileFilterPersonalRating.value = null
+        }
+    }
+
+    fun removeFileFromStorage(fileId: Long, storageId: Long) {
+        viewModelScope.launch {
+            repository.removeFileFromStorage(fileId, storageId)
+            _storageFiles.value = repository.getFilesByStorageId(storageId)
+        }
+    }
+
     fun clearStorageRemoveError() {
         _storageRemoveError.value = null
     }
@@ -150,6 +243,17 @@ class MainViewModel(context: Context) : ViewModel() {
         _selectedMovie.value = movie
         viewModelScope.launch {
             _movieFiles.value = repository.getFilesByMovieId(movie.id)
+        }
+    }
+
+    fun selectMovieById(movieId: Long, onSelected: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            val movie = repository.getMovieById(movieId)
+            if (movie != null) {
+                _selectedMovie.value = movie
+                _movieFiles.value = repository.getFilesByMovieId(movieId)
+                onSelected?.invoke()
+            }
         }
     }
 
