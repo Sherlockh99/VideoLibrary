@@ -58,6 +58,8 @@ class MovieRepository(
 
     suspend fun getMovieById(id: Long): MovieEntity? = movieDao.getById(id)
 
+    suspend fun getMovieByTmdbId(tmdbId: Long): MovieEntity? = movieDao.getByTmdbId(tmdbId)
+
     suspend fun addMovie(details: TmdbMovieDetails): Long {
         val exists = movieDao.existsByTmdbId(details.id)
         if (exists) return -1

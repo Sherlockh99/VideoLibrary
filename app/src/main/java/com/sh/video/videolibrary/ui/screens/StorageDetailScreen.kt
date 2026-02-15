@@ -17,11 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,6 +87,7 @@ fun StorageDetailScreen(
     val storageFileFilterPersonalRating by viewModel.storageFileFilterPersonalRating.collectAsState()
     var filterMenuExpanded by remember { mutableStateOf(false) }
     var fileToDelete by remember { mutableStateOf<FileOnStorageRow?>(null) }
+    var showAddFileDialog by remember { mutableStateOf(false) }
     val hasFilter = storageFileFilter != StorageFileFilter.ALL
 
     LaunchedEffect(storage.id) {
@@ -149,6 +152,11 @@ fun StorageDetailScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddFileDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Добавить файл")
+            }
         }
     ) { padding ->
         Column(
@@ -315,5 +323,18 @@ fun StorageDetailScreen(
                 }
             }
         }
+    }
+
+    if (showAddFileDialog) {
+        AddFileToStorageDialog(
+            storage = storage,
+            viewModel = viewModel,
+            onDismiss = {
+                showAddFileDialog = false
+                viewModel.clearSearchResults()
+                viewModel.clearUiStateError()
+            },
+            onSuccess = { }
+        )
     }
 }

@@ -19,6 +19,9 @@ interface MovieDao {
     @Query("SELECT EXISTS(SELECT 1 FROM movies WHERE tmdbId = :tmdbId)")
     suspend fun existsByTmdbId(tmdbId: Long): Boolean
 
+    @Query("SELECT * FROM movies WHERE tmdbId = :tmdbId")
+    suspend fun getByTmdbId(tmdbId: Long): MovieEntity?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(movie: MovieEntity): Long
 

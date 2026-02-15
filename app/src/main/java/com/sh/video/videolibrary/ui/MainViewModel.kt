@@ -214,6 +214,35 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
+    suspend fun getMovieByTmdbId(tmdbId: Long): MovieEntity? =
+        repository.getMovieByTmdbId(tmdbId)
+
+    /** Добавляет файл в хранилище. Создаёт фильм если нужно, создаёт файл, привязывает к storageId. */
+    suspend fun addFileToStorage(
+        storageId: Long,
+        movieId: Long?,
+        tmdbDetails: TmdbMovieDetails?,
+        fileName: String,
+        fileSize: Long
+    ): Result<Unit> = runCatching {
+        val finalMovieId = when {
+            movieId != null -> movieId
+            tmdbDetails != null -> {
+                var id = repository.getMovieByTmdbId(tmdbDetails.id)?.id
+                if (id == null) {
+                    val added = repository.addMovie(tmdbDetails)
+                    id = if (added == -1L) repository.getMovieByTmdbId(tmdbDetails.id)?.id else added
+                    if (id == null) throw IllegalArgumentException("Не удалось добавить фильм")
+                }
+                id!!
+            }
+            else -> throw IllegalArgumentException("Выберите фильм из коллекции или добавьте из TMDb")
+        }
+        val fileId = repository.addFile(finalMovieId, fileName, fileSize)
+        repository.addFileToStorage(fileId, storageId)
+        _storageFiles.value = repository.getFilesByStorageId(storageId)
+    }
+
     fun clearStorageRemoveError() {
         _storageRemoveError.value = null
     }
@@ -238,6 +267,21 @@ class MainViewModel(context: Context) : ViewModel() {
 
     private val _movieFiles = MutableStateFlow<List<FileWithStorages>>(emptyList())
     val movieFiles = _movieFiles.asStateFlow()
+
+    private val _movieFilesForAddDialog = MutableStateFlow<List<FileWithStorages>>(emptyList())
+    val movieFilesForAddDialog = _movieFilesForAddDialog.asStateFlow()
+
+    fun loadMovieFilesForAddDialog(movieId: Long) {
+        viewModelScope.launch {
+            _movieFilesForAddDialog.value = if (movieId > 0) repository.getFilesByMovieId(movieId) else emptyList()
+        }
+    }
+
+    suspend fun linkExistingFilesToStorage(fileIds: List<Long>, storageId: Long): Result<Unit> =
+        runCatching {
+            fileIds.forEach { repository.addFileToStorage(it, storageId) }
+            _storageFiles.value = repository.getFilesByStorageId(storageId)
+        }
 
     fun selectMovie(movie: MovieEntity) {
         _selectedMovie.value = movie
