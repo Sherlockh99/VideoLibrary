@@ -37,6 +37,9 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
+    private val _selectedTmdbForPreview = MutableStateFlow<TmdbMovieDetails?>(null)
+    val selectedTmdbForPreview = _selectedTmdbForPreview.asStateFlow()
+
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState = _uiState.asStateFlow()
 
@@ -120,12 +123,30 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun selectTmdbForPreview(details: TmdbMovieDetails) {
+        _selectedTmdbForPreview.value = details
+        if (_uiState.value is UiState.Error) _uiState.value = UiState.Idle
+    }
+
+    fun clearTmdbPreview() {
+        _selectedTmdbForPreview.value = null
+    }
+
+    private val _movieAddedSuccess = MutableStateFlow(false)
+    val movieAddedSuccess = _movieAddedSuccess.asStateFlow()
+
     fun addMovie(details: TmdbMovieDetails) {
         viewModelScope.launch {
             val id = repository.addMovie(details)
             if (id == -1L) _uiState.value = UiState.Error("Фильм уже в коллекции")
-            else _uiState.value = UiState.Success
+            else {
+                _movieAddedSuccess.value = true
+            }
         }
+    }
+
+    fun clearMovieAddedSuccess() {
+        _movieAddedSuccess.value = false
     }
 
     fun updateRating(id: Long, rating: Int) {
@@ -170,6 +191,10 @@ class MainViewModel(context: Context) : ViewModel() {
 
     fun clearSearchResults() {
         _searchResults.value = emptyList()
+    }
+
+    fun clearUiStateError() {
+        if (_uiState.value is UiState.Error) _uiState.value = UiState.Idle
     }
 
     fun clearExportResult() {

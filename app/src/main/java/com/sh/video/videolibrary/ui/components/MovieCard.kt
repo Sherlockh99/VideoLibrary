@@ -78,7 +78,7 @@ fun MovieCard(
                     )
                     movie.personalRating?.let { pr ->
                         Text(
-                            text = "  Ваша: $pr/5",
+                            text = "  ★ $pr",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )

@@ -27,6 +27,7 @@ import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
 import com.sh.video.videolibrary.ui.screens.SearchTmdbScreen
+import com.sh.video.videolibrary.ui.screens.TmdbMoviePreviewScreen
 import com.sh.video.videolibrary.ui.screens.SettingsScreen
 import com.sh.video.videolibrary.ui.screens.StoragesScreen
 import com.sh.video.videolibrary.ui.theme.VideoLibraryTheme
@@ -96,11 +97,25 @@ class MainActivity : ComponentActivity() {
                             SearchTmdbScreen(
                                 viewModel = viewModel,
                                 onBack = { navController.popBackStack() },
-                                onMovieSelected = { movie: TmdbMovieDetails ->
-                                    viewModel.addMovie(movie)
-                                    navController.popBackStack()
+                                onMovieSelected = { movie ->
+                                    viewModel.selectTmdbForPreview(movie)
+                                    navController.navigate("tmdb_preview")
                                 }
                             )
+                        }
+                        composable("tmdb_preview") {
+                            val movie by viewModel.selectedTmdbForPreview.collectAsState()
+                            if (movie != null) {
+                                TmdbMoviePreviewScreen(
+                                    movie = movie!!,
+                                    viewModel = viewModel,
+                                    onBack = {
+                                        viewModel.clearTmdbPreview()
+                                        viewModel.clearUiStateError()
+                                        navController.popBackStack()
+                                    }
+                                )
+                            }
                         }
                         composable("detail") {
                             val movie by viewModel.selectedMovie.collectAsState()

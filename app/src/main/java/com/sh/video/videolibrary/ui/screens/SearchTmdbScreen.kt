@@ -22,7 +22,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +48,8 @@ fun SearchTmdbScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val isSearching = uiState is MainViewModel.UiState.Loading
 
     Scaffold(
         topBar = {
@@ -72,13 +76,21 @@ fun SearchTmdbScreen(
                     .padding(16.dp),
                 placeholder = { Text("Название фильма") },
                 singleLine = true,
+                enabled = !isSearching,
                 trailingIcon = {
                     androidx.compose.material3.TextButton(
                         onClick = {
                             if (query.isNotBlank()) viewModel.searchTmdb(query.trim())
-                        }
+                        },
+                        enabled = !isSearching
                     ) {
-                        Text("Искать")
+                        if (isSearching) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text("Искать")
+                        }
                     }
                 }
             )
