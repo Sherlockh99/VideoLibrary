@@ -41,7 +41,8 @@ import com.sh.video.videolibrary.ui.MainViewModel
 @Composable
 fun CategoriesScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCategoryClick: (CategoryWithMovieCount) -> Unit = {}
 ) {
     val categoriesWithCounts by viewModel.categoriesWithMovieCounts.collectAsState()
     val categoryRemoveError by viewModel.categoryRemoveError.collectAsState()
@@ -201,7 +202,9 @@ fun CategoriesScreen(
                 ) {
                     items(categoriesWithCounts) { item ->
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCategoryClick(item) },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {

@@ -26,6 +26,14 @@ interface MovieCategoryDao {
     @Query("SELECT COUNT(*) FROM movie_categories WHERE categoryId = :categoryId")
     suspend fun getMovieCountByCategoryId(categoryId: Long): Int
 
+    @Query("""
+        SELECT m.* FROM movies m 
+        JOIN movie_categories mc ON m.id = mc.movieId 
+        WHERE mc.categoryId = :categoryId 
+        ORDER BY m.title
+    """)
+    suspend fun getMoviesByCategoryId(categoryId: Long): List<MovieEntity>
+
     @Transaction
     suspend fun setMovieCategories(movieId: Long, categoryIds: List<Long>) {
         deleteByMovieId(movieId)

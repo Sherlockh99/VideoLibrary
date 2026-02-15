@@ -299,6 +299,9 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val movieCategories = _movieCategories.asStateFlow()
 
+    private val _categoryMovies = MutableStateFlow<List<MovieEntity>>(emptyList())
+    val categoryMovies = _categoryMovies.asStateFlow()
+
     fun loadMovieCategories(movieId: Long) {
         viewModelScope.launch {
             _movieCategories.value = repository.getCategoriesByMovieId(movieId)
@@ -309,6 +312,12 @@ class MainViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             repository.setMovieCategories(movieId, categoryIds)
             _movieCategories.value = repository.getCategoriesByMovieId(movieId)
+        }
+    }
+
+    fun loadCategoryMovies(categoryId: Long) {
+        viewModelScope.launch {
+            _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
         }
     }
 

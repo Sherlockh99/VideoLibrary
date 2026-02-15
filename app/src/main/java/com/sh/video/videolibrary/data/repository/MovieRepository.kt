@@ -190,6 +190,9 @@ class MovieRepository(
     suspend fun getMovieCountByCategoryId(categoryId: Long): Int =
         movieCategoryDao.getMovieCountByCategoryId(categoryId)
 
+    suspend fun getMoviesByCategoryId(categoryId: Long): List<MovieEntity> =
+        movieCategoryDao.getMoviesByCategoryId(categoryId)
+
     suspend fun removeCategory(id: Long): Boolean {
         if (movieCategoryDao.getMovieCountByCategoryId(id) > 0) return false
         categoryDao.deleteById(id)

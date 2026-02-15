@@ -27,6 +27,7 @@ import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
 import com.sh.video.videolibrary.ui.screens.AboutScreen
 import com.sh.video.videolibrary.ui.screens.CategoriesScreen
+import com.sh.video.videolibrary.ui.screens.CategoryDetailScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
@@ -92,8 +93,35 @@ class MainActivity : ComponentActivity() {
                         composable("categories") {
                             CategoriesScreen(
                                 viewModel = viewModel,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onCategoryClick = { item ->
+                                    navController.navigate("category/${item.category.id}")
+                                }
                             )
+                        }
+                        composable(
+                            route = "category/{categoryId}",
+                            arguments = listOf(navArgument("categoryId") { type = androidx.navigation.NavType.LongType })
+                        ) { backStackEntry ->
+                            val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: 0L
+                            val categories by viewModel.categories.collectAsState()
+                            val category = categories.find { it.id == categoryId }
+                            LaunchedEffect(categories, categoryId) {
+                                if (categories.isNotEmpty() && category == null) {
+                                    navController.popBackStack()
+                                }
+                            }
+                            if (category != null) {
+                                CategoryDetailScreen(
+                                    category = category,
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onMovieClick = { movie ->
+                                        viewModel.selectMovie(movie)
+                                        navController.navigate("detail")
+                                    }
+                                )
+                            }
                         }
                         composable("storages") {
                             StoragesScreen(
