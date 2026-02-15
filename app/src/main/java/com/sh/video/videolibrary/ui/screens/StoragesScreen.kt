@@ -60,7 +60,7 @@ fun StoragesScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Добавьте хранилища (HDD, SSD, NAS…), затем в Моя коллекция откройте фильм и нажмите «Добавить файл» в блоке «Файлы на».",
+                text = "Добавьте хранилища (HDD, SSD, M2…). Файлы фильмов добавляйте в карточке фильма (Моя коллекция → фильм → «Добавить файл»).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 16.dp)

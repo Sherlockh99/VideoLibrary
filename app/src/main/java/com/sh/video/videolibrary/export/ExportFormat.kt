@@ -30,6 +30,13 @@ data class ExportFormat(
         @SerializedName("release_date") val releaseDate: String,
         @SerializedName("poster_path") val posterPath: String?,
         @SerializedName("personal_rating") val personalRating: Int?,
+        @SerializedName("storage_names") val storageNames: List<String>? = null,
+        val files: List<FileExport>? = null
+    )
+
+    data class FileExport(
+        val name: String,
+        val size: Long = 0,
         @SerializedName("storage_names") val storageNames: List<String>? = null
     )
 }

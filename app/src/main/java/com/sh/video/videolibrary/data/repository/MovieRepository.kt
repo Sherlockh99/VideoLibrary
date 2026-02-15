@@ -6,19 +6,21 @@ import com.sh.video.videolibrary.data.local.AppDatabase
 import com.sh.video.videolibrary.data.local.DatabaseProvider
 import com.sh.video.videolibrary.data.local.MovieDao
 import com.sh.video.videolibrary.data.local.MovieEntity
-import com.sh.video.videolibrary.data.local.MovieFileDao
-import com.sh.video.videolibrary.data.local.MovieFileEntity
-import com.sh.video.videolibrary.data.local.MovieFileWithStorage
+import com.sh.video.videolibrary.data.local.FileDao
+import com.sh.video.videolibrary.data.local.FileEntity
 import com.sh.video.videolibrary.data.local.StorageDao
+import com.sh.video.videolibrary.data.local.StorageFileDao
+import com.sh.video.videolibrary.data.local.StorageFileEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbApi
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.export.ExportFormat
 import kotlinx.coroutines.flow.Flow
-import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+data class FileWithStorages(val file: FileEntity, val storageNames: List<String>)
 
 class MovieRepository(
     private val context: Context,
@@ -28,7 +30,8 @@ class MovieRepository(
     private val db: AppDatabase = DatabaseProvider.getDatabase(context)
     private val movieDao: MovieDao = db.movieDao()
     private val storageDao: StorageDao = db.storageDao()
-    private val movieFileDao: MovieFileDao = db.movieFileDao()
+    private val fileDao: FileDao = db.fileDao()
+    private val storageFileDao: StorageFileDao = db.storageFileDao()
     private val gson = Gson()
 
     fun getAllMovies(): Flow<List<MovieEntity>> = movieDao.getAllFlow()
@@ -83,20 +86,32 @@ class MovieRepository(
         storageDao.deleteById(id)
     }
 
-    suspend fun getMovieFilesByMovieId(movieId: Long): List<MovieFileWithStorage> =
-        movieFileDao.getByMovieId(movieId)
+    suspend fun getFilesByMovieId(movieId: Long): List<FileWithStorages> {
+        val files = fileDao.getByMovieId(movieId)
+        return files.map { file ->
+            val storages = storageFileDao.getStoragesByFileId(file.id)
+            FileWithStorages(file, storages.map { it.name })
+        }
+    }
 
-    suspend fun getStorageNamesByMovieId(movieId: Long): List<String> =
-        movieFileDao.getStorageNamesByMovieId(movieId)
+    suspend fun addFile(movieId: Long, name: String, size: Long = 0): Long =
+        fileDao.insert(FileEntity(name = name, size = size, movieId = movieId))
 
-    suspend fun addMovieFile(movieId: Long, storageId: Long): Boolean {
-        if (movieFileDao.exists(movieId, storageId) == true) return false
-        movieFileDao.insert(MovieFileEntity(movieId = movieId, storageId = storageId))
+    suspend fun addFileToStorage(fileId: Long, storageId: Long): Boolean {
+        if (storageFileDao.exists(fileId, storageId) == true) return false
+        storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storageId))
         return true
     }
 
-    suspend fun removeMovieFile(movieFileId: Long) {
-        movieFileDao.deleteById(movieFileId)
+    suspend fun removeFile(fileId: Long) {
+        fileDao.deleteById(fileId)
+    }
+
+    suspend fun updateFile(fileId: Long, name: String, size: Long, storageIds: List<Long>) {
+        val file = fileDao.getById(fileId) ?: return
+        fileDao.update(file.copy(name = name, size = size))
+        storageFileDao.deleteByFileId(fileId)
+        storageIds.forEach { storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = it)) }
     }
 
     suspend fun exportToOutputStream(outputStream: java.io.OutputStream): Int {
@@ -114,7 +129,13 @@ class MovieRepository(
             source = "android",
             storages = storages.map { ExportFormat.StorageExport(id = it.id.toInt(), name = it.name) },
             movies = movies.map { m ->
-                val storageNames = movieFileDao.getStorageNamesByMovieId(m.id)
+                val filesData = getFilesByMovieId(m.id).map { fws ->
+                    ExportFormat.FileExport(
+                        name = fws.file.name,
+                        size = fws.file.size,
+                        storageNames = fws.storageNames
+                    )
+                }
                 ExportFormat.MovieExport(
                     tmdbId = m.tmdbId.toInt(),
                     title = m.title,
@@ -125,7 +146,7 @@ class MovieRepository(
                     releaseDate = m.releaseDate,
                     posterPath = m.posterPath,
                     personalRating = m.personalRating,
-                    storageNames = storageNames
+                    files = filesData
                 )
             }
         )
@@ -146,7 +167,7 @@ class MovieRepository(
         var skipped = 0
         for (m in data.movies) {
             val exists = movieDao.existsByTmdbId(m.tmdbId.toLong())
-            val storageNames = m.storageNames ?: emptyList()
+            val filesData = m.files ?: emptyList()
 
             if (exists) {
                 if (replaceDuplicates) {
@@ -164,10 +185,13 @@ class MovieRepository(
                             personalRating = m.personalRating
                         )
                         movieDao.update(updated)
-                        movieFileDao.deleteByMovieId(existing.id)
-                        for (sn in storageNames) {
-                            storageDao.getByName(sn)?.let { storage ->
-                                movieFileDao.insert(MovieFileEntity(movieId = existing.id, storageId = storage.id))
+                        fileDao.deleteByMovieId(existing.id)
+                        for (f in filesData) {
+                            val fileId = fileDao.insert(FileEntity(name = f.name, size = f.size.toLong(), movieId = existing.id))
+                            for (sn in f.storageNames.orEmpty()) {
+                                storageDao.getByName(sn)?.let { storage ->
+                                    storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storage.id))
+                                }
                             }
                         }
                         added++
@@ -189,9 +213,12 @@ class MovieRepository(
                     createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 )
             )
-            for (sn in storageNames) {
-                storageDao.getByName(sn)?.let { storage ->
-                    movieFileDao.insert(MovieFileEntity(movieId = id, storageId = storage.id))
+            for (f in filesData) {
+                val fileId = fileDao.insert(FileEntity(name = f.name, size = f.size.toLong(), movieId = id))
+                for (sn in f.storageNames.orEmpty()) {
+                    storageDao.getByName(sn)?.let { storage ->
+                        storageFileDao.insert(StorageFileEntity(fileId = fileId, storageId = storage.id))
+                    }
                 }
             }
             added++

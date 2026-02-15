@@ -9,8 +9,8 @@
     python main.py storage add <имя> - добавить хранилище
     python main.py storage list     - список хранилищ
     python main.py storage remove <id> - удалить хранилище
-    python main.py file add <movie_id> <storage_id/имя> - привязать файл к фильму
-    python main.py file remove <movie_file_id> - удалить привязку
+    python main.py file add <movie_id> <имя> [размер] [storage_id/имя...] - добавить файл
+    python main.py file remove <file_id> - удалить файл
     python main.py file list <movie_id> - файлы фильма
     python main.py export [путь] - выгрузить коллекцию в .vlp
     python main.py import <путь> - загрузить коллекцию из .vlp
@@ -32,12 +32,13 @@ from database import (
     get_storage_by_name,
     add_storage,
     remove_storage,
-    add_movie_file,
-    remove_movie_file,
-    get_movie_files_by_movie_id,
+    add_file,
+    add_file_to_storage,
+    remove_file,
+    get_files_by_movie_id,
     get_storage_names_for_movie,
     Movie,
-    Storage,
+    File,
 )
 from export_import import export_to_file, import_from_file
 
@@ -296,8 +297,16 @@ def cmd_storage() -> int:
     return 1
 
 
+def _format_size(size: int) -> str:
+    """Форматирует размер в байтах."""
+    for u, suffix in [(10**9, "ГБ"), (10**6, "МБ"), (10**3, "КБ")]:
+        if size >= u:
+            return f"{size / u:.1f} {suffix}"
+    return f"{size} Б"
+
+
 def cmd_file() -> int:
-    """Управление привязками файлов: add, remove, list."""
+    """Управление файлами: add, remove, list."""
     if len(sys.argv) < 3:
         print("Использование: python main.py file <add|remove|list> [аргументы]")
         return 1
@@ -305,43 +314,50 @@ def cmd_file() -> int:
     sub = sys.argv[2].lower()
     if sub == "add":
         if len(sys.argv) < 5:
-            print("Использование: python main.py file add <movie_id> <storage_id|имя>")
+            print("Использование: python main.py file add <movie_id> <имя> [размер] [storage_id|имя...]")
             return 1
         try:
             movie_id = int(sys.argv[3])
         except ValueError:
             print("movie_id должен быть числом.")
             return 1
-        storage_arg = sys.argv[4].strip()
-        try:
-            storage_id = int(storage_arg)
-            storage = get_storage_by_id(storage_id)
-        except ValueError:
-            storage = get_storage_by_name(storage_arg)
-            storage_id = storage.id if storage else None
-        if not storage:
-            print("Хранилище не найдено.")
+        name = sys.argv[4].strip()
+        if not name:
+            print("Имя файла не может быть пустым.")
             return 1
-        mf_id = add_movie_file(movie_id, storage.id)
-        if mf_id:
-            print(f"Файл фильма [{movie_id}] привязан к хранилищу {storage.name}.")
-        else:
-            print("Эта привязка уже существует.")
+        size = 0
+        storage_args = []
+        for arg in sys.argv[5:]:
+            try:
+                size = int(arg)
+            except ValueError:
+                storage_args.append(arg)
+        file_id = add_file(movie_id, name, size)
+        for arg in storage_args:
+            arg = arg.strip()
+            try:
+                sid = int(arg)
+                storage = get_storage_by_id(sid)
+            except ValueError:
+                storage = get_storage_by_name(arg)
+            if storage:
+                add_file_to_storage(file_id, storage.id)
+        print(f'Файл "{name}" добавлен (id={file_id}).')
         return 0
 
     if sub == "remove":
         if len(sys.argv) < 4:
-            print("Использование: python main.py file remove <movie_file_id>")
+            print("Использование: python main.py file remove <file_id>")
             return 1
         try:
-            mf_id = int(sys.argv[3])
+            file_id = int(sys.argv[3])
         except ValueError:
-            print("movie_file_id должен быть числом.")
+            print("file_id должен быть числом.")
             return 1
-        if remove_movie_file(mf_id):
-            print("Привязка удалена.")
+        if remove_file(file_id):
+            print("Файл удалён.")
         else:
-            print("Привязка с таким ID не найдена.")
+            print("Файл с таким ID не найден.")
         return 0
 
     if sub == "list":
@@ -357,13 +373,14 @@ def cmd_file() -> int:
         if not movie:
             print("Фильм не найден.")
             return 1
-        pairs = get_movie_files_by_movie_id(movie_id)
-        if not pairs:
-            print(f"У фильма [{movie_id}] {movie.title} нет привязок к хранилищам.")
+        files_data = get_files_by_movie_id(movie_id)
+        if not files_data:
+            print(f"У фильма [{movie_id}] {movie.title} нет файлов.")
             return 0
         print(f"Файлы фильма [{movie_id}] {movie.title}:")
-        for mf, s in pairs:
-            print(f"  [mf_id={mf.id}] {s.name}")
+        for f, storages in files_data:
+            stor_str = ", ".join(s.name for s in storages) if storages else "—"
+            print(f"  [id={f.id}] {f.name} ({_format_size(f.size)}) — {stor_str}")
         return 0
 
     print(f"Неизвестная подкоманда: {sub}")

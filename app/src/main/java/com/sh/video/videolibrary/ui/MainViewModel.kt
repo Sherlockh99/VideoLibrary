@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
+import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.local.MovieEntity
-import com.sh.video.videolibrary.data.local.MovieFileWithStorage
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.remote.TmdbSearchResponse
@@ -49,13 +49,13 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _selectedMovie = MutableStateFlow<MovieEntity?>(null)
     val selectedMovie = _selectedMovie.asStateFlow()
 
-    private val _movieFiles = MutableStateFlow<List<MovieFileWithStorage>>(emptyList())
+    private val _movieFiles = MutableStateFlow<List<FileWithStorages>>(emptyList())
     val movieFiles = _movieFiles.asStateFlow()
 
     fun selectMovie(movie: MovieEntity) {
         _selectedMovie.value = movie
         viewModelScope.launch {
-            _movieFiles.value = repository.getMovieFilesByMovieId(movie.id)
+            _movieFiles.value = repository.getFilesByMovieId(movie.id)
         }
     }
 
@@ -76,23 +76,30 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun addMovieFile(movieId: Long, storageId: Long) {
+    fun addFile(movieId: Long, name: String, size: Long, storageIds: List<Long>) {
         viewModelScope.launch {
-            if (repository.addMovieFile(movieId, storageId)) {
-                _selectedMovie.value?.let { m ->
-                    if (m.id == movieId) {
-                        _movieFiles.value = repository.getMovieFilesByMovieId(movieId)
-                    }
-                }
+            val fileId = repository.addFile(movieId, name, size)
+            storageIds.forEach { repository.addFileToStorage(fileId, it) }
+            _selectedMovie.value?.let { m ->
+                if (m.id == movieId) _movieFiles.value = repository.getFilesByMovieId(movieId)
             }
         }
     }
 
-    fun removeMovieFile(movieFileId: Long) {
+    fun updateFile(fileId: Long, name: String, size: Long, storageIds: List<Long>) {
         viewModelScope.launch {
-            repository.removeMovieFile(movieFileId)
+            repository.updateFile(fileId, name, size, storageIds)
             _selectedMovie.value?.let { m ->
-                _movieFiles.value = repository.getMovieFilesByMovieId(m.id)
+                _movieFiles.value = repository.getFilesByMovieId(m.id)
+            }
+        }
+    }
+
+    fun removeFile(fileId: Long) {
+        viewModelScope.launch {
+            repository.removeFile(fileId)
+            _selectedMovie.value?.let { m ->
+                _movieFiles.value = repository.getFilesByMovieId(m.id)
             }
         }
     }

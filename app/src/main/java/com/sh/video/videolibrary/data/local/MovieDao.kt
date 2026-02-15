@@ -37,8 +37,9 @@ interface MovieDao {
         AND (:description IS NULL OR overview LIKE '%' || :description || '%')
         AND (:personalRating IS NULL OR personalRating = :personalRating)
         AND (:storageName IS NULL OR id IN (
-            SELECT movieId FROM movie_files mf 
-            JOIN storages s ON s.id = mf.storageId AND s.name = :storageName
+            SELECT f.movieId FROM files f 
+            JOIN storage_files sf ON sf.fileId = f.id 
+            JOIN storages s ON s.id = sf.storageId AND s.name = :storageName
         ))
         ORDER BY title
     """)

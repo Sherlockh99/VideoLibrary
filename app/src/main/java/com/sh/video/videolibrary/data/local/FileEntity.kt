@@ -6,27 +6,21 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    tableName = "movie_files",
+    tableName = "files",
     foreignKeys = [
         ForeignKey(
             entity = MovieEntity::class,
             parentColumns = ["id"],
             childColumns = ["movieId"],
             onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = StorageEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["storageId"],
-            onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("movieId"), Index("storageId")]
+    indices = [Index("movieId")]
 )
-data class MovieFileEntity(
+data class FileEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val movieId: Long,
-    val storageId: Long,
-    val createdAt: String = ""
+    val name: String,
+    val size: Long = 0,
+    val movieId: Long
 )

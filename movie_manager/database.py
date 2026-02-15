@@ -31,12 +31,12 @@ class Storage:
 
 
 @dataclass
-class MovieFile:
-    """Привязка фильма к хранилищу (файл фильма на этом хранилище)."""
+class File:
+    """Файл фильма (имя, размер, привязка к фильму)."""
     id: int
+    name: str
+    size: int  # байты
     movie_id: int
-    storage_id: int
-    created_at: str
 
 
 def init_db():
@@ -86,18 +86,30 @@ def init_db():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS movie_files (
+        CREATE TABLE IF NOT EXISTS files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            size INTEGER NOT NULL DEFAULT 0,
             movie_id INTEGER NOT NULL,
-            storage_id INTEGER NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (movie_id) REFERENCES movies(id),
-            FOREIGN KEY (storage_id) REFERENCES storages(id)
+            FOREIGN KEY (movie_id) REFERENCES movies(id)
         )
     """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_movie ON files(movie_id)")
 
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_files_movie ON movie_files(movie_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_files_storage ON movie_files(storage_id)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS storage_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            storage_id INTEGER NOT NULL,
+            file_id INTEGER NOT NULL,
+            FOREIGN KEY (storage_id) REFERENCES storages(id),
+            FOREIGN KEY (file_id) REFERENCES files(id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_storage_files_storage ON storage_files(storage_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_storage_files_file ON storage_files(file_id)")
+
+    # Миграция: удалить старую таблицу movie_files если была
+    cursor.execute("DROP TABLE IF EXISTS movie_files")
 
     conn.commit()
     conn.close()
@@ -202,8 +214,9 @@ def search_movies(
     if storage_name:
         query = """
             SELECT DISTINCT m.* FROM movies m
-            JOIN movie_files mf ON mf.movie_id = m.id
-            JOIN storages s ON s.id = mf.storage_id AND s.name = ?
+            JOIN files f ON f.movie_id = m.id
+            JOIN storage_files sf ON sf.file_id = f.id
+            JOIN storages s ON s.id = sf.storage_id AND s.name = ?
             WHERE 1=1
         """
         params = [storage_name]
@@ -374,10 +387,10 @@ def get_storage_by_name(name: str) -> Optional[Storage]:
 
 
 def remove_storage(storage_id: int) -> bool:
-    """Удаляет хранилище и все привязки film->storage."""
+    """Удаляет хранилище и все привязки файлов к нему."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM movie_files WHERE storage_id = ?", (storage_id,))
+    cursor.execute("DELETE FROM storage_files WHERE storage_id = ?", (storage_id,))
     cursor.execute("DELETE FROM storages WHERE id = ?", (storage_id,))
     deleted = cursor.rowcount > 0
     conn.commit()
@@ -385,91 +398,119 @@ def remove_storage(storage_id: int) -> bool:
     return deleted
 
 
-# --- Movie files (привязки фильм -> хранилище) ---
+# --- Files (файлы с привязкой к фильму) ---
 
 
-def add_movie_file(movie_id: int, storage_id: int) -> Optional[int]:
-    """Добавляет привязку: у фильма есть файл на этом хранилище."""
+def add_file(movie_id: int, name: str, size: int = 0) -> int:
+    """Добавляет файл, привязанный к фильму. Возвращает file_id."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT 1 FROM movie_files WHERE movie_id = ? AND storage_id = ?",
-        (movie_id, storage_id),
+        "INSERT INTO files (name, size, movie_id) VALUES (?, ?, ?)",
+        (name, size, movie_id),
+    )
+    file_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return file_id
+
+
+def add_file_to_storage(file_id: int, storage_id: int) -> bool:
+    """Добавляет файл на хранилище. Возвращает True если добавлено."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT 1 FROM storage_files WHERE file_id = ? AND storage_id = ?",
+        (file_id, storage_id),
     )
     if cursor.fetchone():
         conn.close()
-        return None
+        return False
     cursor.execute(
-        "INSERT INTO movie_files (movie_id, storage_id) VALUES (?, ?)",
-        (movie_id, storage_id),
+        "INSERT INTO storage_files (file_id, storage_id) VALUES (?, ?)",
+        (file_id, storage_id),
     )
-    mf_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    return mf_id
+    return True
 
 
-def remove_movie_files_by_movie_id(movie_id: int) -> None:
-    """Удаляет все привязки фильма к хранилищам."""
+def remove_files_by_movie_id(movie_id: int) -> None:
+    """Удаляет все файлы фильма и их привязки к хранилищам."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM movie_files WHERE movie_id = ?", (movie_id,))
+    cursor.execute("SELECT id FROM files WHERE movie_id = ?", (movie_id,))
+    file_ids = [r[0] for r in cursor.fetchall()]
+    for fid in file_ids:
+        cursor.execute("DELETE FROM storage_files WHERE file_id = ?", (fid,))
+    cursor.execute("DELETE FROM files WHERE movie_id = ?", (movie_id,))
     conn.commit()
     conn.close()
 
 
-def remove_movie_file(movie_file_id: int) -> bool:
-    """Удаляет привязку по ID movie_files."""
+def remove_file(file_id: int) -> bool:
+    """Удаляет файл и все его привязки к хранилищам."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM movie_files WHERE id = ?", (movie_file_id,))
+    cursor.execute("DELETE FROM storage_files WHERE file_id = ?", (file_id,))
+    cursor.execute("DELETE FROM files WHERE id = ?", (file_id,))
     deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
     return deleted
 
 
-def get_movie_files_by_movie_id(movie_id: int) -> list[tuple[MovieFile, Storage]]:
-    """Возвращает привязки фильма к хранилищам (MovieFile + Storage)."""
+def get_files_by_movie_id(movie_id: int) -> list[tuple[File, list[Storage]]]:
+    """Возвращает файлы фильма с их хранилищами: (File, [Storage, ...])."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
-        """
-        SELECT mf.id, mf.movie_id, mf.storage_id, mf.created_at,
-               s.name as storage_name
-        FROM movie_files mf
-        JOIN storages s ON s.id = mf.storage_id
-        WHERE mf.movie_id = ?
-        ORDER BY s.name
-        """,
+        "SELECT id, name, size, movie_id FROM files WHERE movie_id = ? ORDER BY name",
         (movie_id,),
     )
-    rows = cursor.fetchall()
-    conn.close()
-    return [
-        (
-            MovieFile(
-                id=row["id"],
-                movie_id=row["movie_id"],
-                storage_id=row["storage_id"],
-                created_at=row["created_at"] or "",
-            ),
-            Storage(id=row["storage_id"], name=row["storage_name"], is_available=True),
+    file_rows = cursor.fetchall()
+    result = []
+    for row in file_rows:
+        file_id = row["id"]
+        cursor.execute(
+            """
+            SELECT s.id, s.name FROM storage_files sf
+            JOIN storages s ON s.id = sf.storage_id
+            WHERE sf.file_id = ?
+            ORDER BY s.name
+            """,
+            (file_id,),
         )
-        for row in rows
-    ]
+        storages = [
+            Storage(id=r["id"], name=r["name"], is_available=True)
+            for r in cursor.fetchall()
+        ]
+        result.append(
+            (
+                File(
+                    id=file_id,
+                    name=row["name"],
+                    size=row["size"],
+                    movie_id=row["movie_id"],
+                ),
+                storages,
+            )
+        )
+    conn.close()
+    return result
 
 
 def get_storage_names_for_movie(movie_id: int) -> list[str]:
-    """Возвращает список имён хранилищ, на которых есть файл фильма."""
+    """Возвращает уникальные имена хранилищ, на которых есть файлы фильма."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT s.name FROM movie_files mf
-        JOIN storages s ON s.id = mf.storage_id
-        WHERE mf.movie_id = ?
+        SELECT DISTINCT s.name FROM files f
+        JOIN storage_files sf ON sf.file_id = f.id
+        JOIN storages s ON s.id = sf.storage_id
+        WHERE f.movie_id = ?
         ORDER BY s.name
         """,
         (movie_id,),

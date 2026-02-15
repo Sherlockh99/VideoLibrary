@@ -15,10 +15,11 @@ from database import (
     get_all_storages,
     get_movie_by_tmdb_id,
     get_storage_by_name,
-    get_storage_names_for_movie,
+    get_files_by_movie_id,
     add_storage,
-    add_movie_file,
-    remove_movie_files_by_movie_id,
+    add_file,
+    add_file_to_storage,
+    remove_files_by_movie_id,
     update_movie_from_import,
 )
 
@@ -55,7 +56,10 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
                 "release_date": m.release_date,
                 "poster_path": m.poster_path,
                 "personal_rating": m.personal_rating,
-                "storage_names": get_storage_names_for_movie(m.id),
+                "files": [
+                    {"name": f.name, "size": f.size, "storage_names": [s.name for s in storages]}
+                    for f, storages in get_files_by_movie_id(m.id)
+                ],
             }
             for m in movies
         ],
@@ -114,7 +118,7 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
             "personal_rating": m.get("personal_rating"),
         }
 
-        storage_names = m.get("storage_names", [])
+        files_data = m.get("files", [])
 
         if movie_exists(tmdb_id):
             if replace_duplicates:
@@ -131,11 +135,16 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
                 )
                 movie = get_movie_by_tmdb_id(tmdb_id)
                 if movie:
-                    remove_movie_files_by_movie_id(movie.id)
-                    for sn in storage_names:
-                        storage = get_storage_by_name(sn)
-                        if storage:
-                            add_movie_file(movie.id, storage.id)
+                    remove_files_by_movie_id(movie.id)
+                    for file_item in files_data:
+                        name = file_item.get("name") or "—"
+                        size = int(file_item.get("size", 0))
+                        storage_names = file_item.get("storage_names", [])
+                        file_id = add_file(movie.id, name, size)
+                        for sn in storage_names:
+                            storage = get_storage_by_name(sn)
+                            if storage:
+                                add_file_to_storage(file_id, storage.id)
                 added += 1
             else:
                 skipped += 1
@@ -152,10 +161,15 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
             poster_path=movie_data["poster_path"],
             personal_rating=movie_data["personal_rating"],
         )
-        for sn in storage_names:
-            storage = get_storage_by_name(sn)
-            if storage:
-                add_movie_file(movie_id, storage.id)
+        for file_item in files_data:
+            name = file_item.get("name") or "—"
+            size = int(file_item.get("size", 0))
+            storage_names = file_item.get("storage_names", [])
+            file_id = add_file(movie_id, name, size)
+            for sn in storage_names:
+                storage = get_storage_by_name(sn)
+                if storage:
+                    add_file_to_storage(file_id, storage.id)
         added += 1
 
     return added, skipped
