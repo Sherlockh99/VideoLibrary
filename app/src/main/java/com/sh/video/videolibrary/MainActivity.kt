@@ -23,9 +23,11 @@ import androidx.navigation.compose.rememberNavController
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
+import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
 import com.sh.video.videolibrary.ui.screens.SearchTmdbScreen
+import com.sh.video.videolibrary.ui.screens.SettingsScreen
 import com.sh.video.videolibrary.ui.screens.StoragesScreen
 import com.sh.video.videolibrary.ui.theme.VideoLibraryTheme
 
@@ -56,8 +58,15 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = "library"
+                        startDestination = "home"
                     ) {
+                        composable("home") {
+                            HomeScreen(
+                                onCollectionClick = { navController.navigate("library") },
+                                onStoragesClick = { navController.navigate("storages") },
+                                onSettingsClick = { navController.navigate("settings") }
+                            )
+                        }
                         composable("library") {
                             LibraryScreen(
                                 viewModel = viewModel,
@@ -66,15 +75,21 @@ class MainActivity : ComponentActivity() {
                                     viewModel.selectMovie(movie)
                                     navController.navigate("detail")
                                 },
-                                onRequestExport = { exportLauncher.launch("videolibrary_export.vlp") },
-                                onRequestImport = { importLauncher.launch(arrayOf("*/*")) },
-                                onStoragesClick = { navController.navigate("storages") }
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("storages") {
                             StoragesScreen(
                                 viewModel = viewModel,
                                 onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onExportClick = { exportLauncher.launch("videolibrary_export.vlp") },
+                                onImportClick = { importLauncher.launch(arrayOf("*/*")) }
                             )
                         }
                         composable("search") {
