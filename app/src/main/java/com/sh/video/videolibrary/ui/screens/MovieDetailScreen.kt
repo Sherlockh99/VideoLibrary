@@ -175,20 +175,28 @@ fun MovieDetailScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
-                    FilledTonalButton(onClick = { editingFile = null; showAddFileDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Добавить файл")
-                    }
                     val canDeleteMovie = movieFiles.isEmpty()
-                    FilledTonalButton(
-                        onClick = { showDeleteConfirmDialog = true },
-                        enabled = canDeleteMovie,
-                        modifier = Modifier.padding(top = 8.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Удалить фильм")
+                        FilledTonalButton(
+                            onClick = { editingFile = null; showAddFileDialog = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Добавить файл")
+                        }
+                        FilledTonalButton(
+                            onClick = { showDeleteConfirmDialog = true },
+                            enabled = canDeleteMovie,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Удалить фильм")
+                        }
                     }
                     if (!canDeleteMovie) {
                         Text(
