@@ -55,4 +55,7 @@ interface MovieDao {
 
     @Query("SELECT * FROM movies ORDER BY title")
     suspend fun getAllSync(): List<MovieEntity>
+
+    @Query("DELETE FROM movies WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.repository.FileWithStorages
+import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
@@ -113,6 +114,17 @@ class MainViewModel(context: Context) : ViewModel() {
     val storages: StateFlow<List<StorageEntity>> = repository.getAllStorages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val storagesWithFileCounts: StateFlow<List<StorageWithFileCount>> =
+        repository.getStoragesWithFileCounts()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _storageRemoveError = MutableStateFlow<String?>(null)
+    val storageRemoveError = _storageRemoveError.asStateFlow()
+
+    fun clearStorageRemoveError() {
+        _storageRemoveError.value = null
+    }
+
     private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
@@ -170,7 +182,10 @@ class MainViewModel(context: Context) : ViewModel() {
 
     fun removeStorage(id: Long) {
         viewModelScope.launch {
-            repository.removeStorage(id)
+            _storageRemoveError.value = null
+            if (!repository.removeStorage(id)) {
+                _storageRemoveError.value = "Нельзя удалить: к хранилищу привязаны файлы"
+            }
         }
     }
 
@@ -200,6 +215,21 @@ class MainViewModel(context: Context) : ViewModel() {
                 _movieFiles.value = repository.getFilesByMovieId(m.id)
             }
         }
+    }
+
+    private val _movieDeleted = MutableStateFlow(false)
+    val movieDeleted = _movieDeleted.asStateFlow()
+
+    fun removeMovie(movieId: Long) {
+        viewModelScope.launch {
+            if (repository.removeMovie(movieId)) {
+                _movieDeleted.value = true
+            }
+        }
+    }
+
+    fun clearMovieDeleted() {
+        _movieDeleted.value = false
     }
 
     fun searchTmdb(query: String) {

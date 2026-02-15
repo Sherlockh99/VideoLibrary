@@ -27,6 +27,9 @@ interface StorageFileDao {
 
     @Query("DELETE FROM storage_files WHERE storageId = :storageId")
     suspend fun deleteByStorageId(storageId: Long)
+
+    @Query("SELECT COUNT(*) FROM storage_files WHERE storageId = :storageId")
+    suspend fun getFileCountByStorageId(storageId: Long): Int
 }
 
 data class StorageNameRow(

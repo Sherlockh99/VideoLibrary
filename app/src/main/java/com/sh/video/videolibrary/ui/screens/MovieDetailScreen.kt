@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,6 +71,16 @@ fun MovieDetailScreen(
     val storages by viewModel.storages.collectAsState()
     var showAddFileDialog by remember { mutableStateOf(false) }
     var editingFile by remember { mutableStateOf<FileWithStorages?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var fileToDelete by remember { mutableStateOf<FileWithStorages?>(null) }
+    val movieDeleted by viewModel.movieDeleted.collectAsState()
+
+    LaunchedEffect(movieDeleted) {
+        if (movieDeleted) {
+            viewModel.clearMovieDeleted()
+            onBack()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -169,6 +180,65 @@ fun MovieDetailScreen(
                         Spacer(Modifier.width(8.dp))
                         Text("Добавить файл")
                     }
+                    val canDeleteMovie = movieFiles.isEmpty()
+                    FilledTonalButton(
+                        onClick = { showDeleteConfirmDialog = true },
+                        enabled = canDeleteMovie,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Удалить фильм")
+                    }
+                    if (!canDeleteMovie) {
+                        Text(
+                            "Сначала удалите все файлы фильма",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    if (fileToDelete != null) {
+                        val fwsToDelete = fileToDelete!!
+                        AlertDialog(
+                            onDismissRequest = { fileToDelete = null },
+                            title = { Text("Удалить файл?") },
+                            text = { Text("Файл \"${fwsToDelete.file.name}\" будет удалён из коллекции.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    viewModel.removeFile(fwsToDelete.file.id)
+                                    fileToDelete = null
+                                }) {
+                                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { fileToDelete = null }) {
+                                    Text("Отмена")
+                                }
+                            }
+                        )
+                    }
+                    if (showDeleteConfirmDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteConfirmDialog = false },
+                            title = { Text("Удалить фильм?") },
+                            text = { Text("Фильм \"${movie.title}\" будет удалён из коллекции. Это действие нельзя отменить.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    viewModel.removeMovie(movie.id)
+                                    showDeleteConfirmDialog = false
+                                }) {
+                                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                                    Text("Отмена")
+                                }
+                            }
+                        )
+                    }
                     if (showAddFileDialog) {
                         FileDialog(
                             editingFile = editingFile,
@@ -213,7 +283,7 @@ fun MovieDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
                             }
-                            IconButton(onClick = { viewModel.removeFile(fws.file.id) }) {
+                            IconButton(onClick = { fileToDelete = fws }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Удалить")
                             }
                         }

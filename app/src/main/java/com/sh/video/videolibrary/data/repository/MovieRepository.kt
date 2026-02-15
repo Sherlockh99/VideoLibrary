@@ -16,11 +16,14 @@ import com.sh.video.videolibrary.data.remote.TmdbApi
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.export.ExportFormat
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 data class FileWithStorages(val file: FileEntity, val storageNames: List<String>)
+
+data class StorageWithFileCount(val storage: StorageEntity, val fileCount: Int)
 
 class MovieRepository(
     private val context: Context,
@@ -78,12 +81,27 @@ class MovieRepository(
 
     fun getAllStorages(): Flow<List<StorageEntity>> = storageDao.getAllFlow()
 
+    fun getStoragesWithFileCounts(): Flow<List<StorageWithFileCount>> = flow {
+        storageDao.getAllFlow().collect { storages ->
+            val withCounts = storages.map { s ->
+                StorageWithFileCount(s, storageFileDao.getFileCountByStorageId(s.id))
+            }
+            emit(withCounts)
+        }
+    }
+
     suspend fun getAllStoragesSync(): List<StorageEntity> = storageDao.getAllSync()
 
     suspend fun addStorage(name: String): Long = storageDao.insert(StorageEntity(name = name))
 
-    suspend fun removeStorage(id: Long) {
+    suspend fun getFileCountByStorageId(storageId: Long): Int =
+        storageFileDao.getFileCountByStorageId(storageId)
+
+    /** Удаляет хранилище. Возвращает true если удалено. Нельзя удалить хранилище, к которому привязаны файлы. */
+    suspend fun removeStorage(id: Long): Boolean {
+        if (storageFileDao.getFileCountByStorageId(id) > 0) return false
         storageDao.deleteById(id)
+        return true
     }
 
     suspend fun getFilesByMovieId(movieId: Long): List<FileWithStorages> {
@@ -105,6 +123,14 @@ class MovieRepository(
 
     suspend fun removeFile(fileId: Long) {
         fileDao.deleteById(fileId)
+    }
+
+    /** Удаляет фильм из коллекции. Возвращает true если удалён. Удалять можно только фильм без файлов. */
+    suspend fun removeMovie(movieId: Long): Boolean {
+        val files = fileDao.getByMovieId(movieId)
+        if (files.isNotEmpty()) return false
+        movieDao.deleteById(movieId)
+        return true
     }
 
     suspend fun updateFile(fileId: Long, name: String, size: Long, storageIds: List<Long>) {
