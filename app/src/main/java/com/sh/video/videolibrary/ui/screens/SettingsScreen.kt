@@ -34,7 +34,8 @@ fun SettingsScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onExportClick: () -> Unit,
-    onImportClick: () -> Unit
+    onImportClick: () -> Unit,
+    onAboutClick: () -> Unit = {}
 ) {
     val exportResult by viewModel.exportResult.collectAsState()
     val importResult by viewModel.importResult.collectAsState()
@@ -67,6 +68,12 @@ fun SettingsScreen(
                 title = "Импорт из .vlp",
                 subtitle = "Загрузить коллекцию из файла",
                 onClick = onImportClick
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            SettingsItem(
+                title = "О приложении",
+                subtitle = "Информация и атрибуция TMDb",
+                onClick = onAboutClick
             )
 
             Spacer(modifier = Modifier.height(32.dp))

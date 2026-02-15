@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalMovies
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -33,7 +34,8 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     onCollectionClick: () -> Unit,
     onStoragesClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onAboutClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -81,6 +83,13 @@ fun HomeScreen(
             subtitle = "Импорт и экспорт .vlp",
             icon = Icons.Default.Settings,
             onClick = onSettingsClick
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        HomeLinkCard(
+            title = "О приложении",
+            subtitle = "Информация и атрибуция TMDb",
+            icon = Icons.Default.Info,
+            onClick = onAboutClick
         )
     }
 }

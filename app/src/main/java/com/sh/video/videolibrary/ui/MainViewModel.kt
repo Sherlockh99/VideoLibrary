@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,13 +25,90 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import java.io.File
 
+enum class LibraryFilter {
+    ALL,
+    BY_TITLE,
+    BY_GENRE,
+    BY_TMDB_RATING,
+    BY_PERSONAL_RATING,
+    BY_STORAGE
+}
+
 class MainViewModel(context: Context) : ViewModel() {
 
     private val app = context.applicationContext as VideoLibraryApp
     private val repository = MovieRepository(context, app.tmdbApi)
 
-    val library: StateFlow<List<MovieEntity>> = repository.getAllMovies()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _libraryFilter = MutableStateFlow(LibraryFilter.ALL)
+    val libraryFilter = _libraryFilter.asStateFlow()
+
+    private val _filterQuery = MutableStateFlow("")
+    val filterQuery = _filterQuery.asStateFlow()
+
+    private val _filterPersonalRating = MutableStateFlow<Int?>(null)
+    val filterPersonalRating = _filterPersonalRating.asStateFlow()
+
+    private val _filterTmdbMinRating = MutableStateFlow<Double?>(null)
+    val filterTmdbMinRating = _filterTmdbMinRating.asStateFlow()
+
+    val library: StateFlow<List<MovieEntity>> = combine(
+        _libraryFilter,
+        _filterQuery,
+        _filterPersonalRating,
+        _filterTmdbMinRating
+    ) { filter, query, personalRating, tmdbMin ->
+        Triple(filter, query, Pair(personalRating, tmdbMin))
+    }.flatMapLatest { (filter, query, ratings) ->
+        val (personalRating, tmdbMin) = ratings
+        when (filter) {
+            LibraryFilter.ALL -> repository.getAllMovies()
+            LibraryFilter.BY_TITLE -> repository.searchMovies(
+                title = query.ifBlank { null },
+                genre = null,
+                minRating = null,
+                maxRating = null,
+                description = null,
+                personalRating = null,
+                storageName = null
+            )
+            LibraryFilter.BY_GENRE -> repository.searchMovies(
+                title = null,
+                genre = query.ifBlank { null },
+                minRating = null,
+                maxRating = null,
+                description = null,
+                personalRating = null,
+                storageName = null
+            )
+            LibraryFilter.BY_TMDB_RATING -> repository.searchMovies(
+                title = null,
+                genre = null,
+                minRating = tmdbMin,
+                maxRating = null,
+                description = null,
+                personalRating = null,
+                storageName = null
+            )
+            LibraryFilter.BY_PERSONAL_RATING -> repository.searchMovies(
+                title = null,
+                genre = null,
+                minRating = null,
+                maxRating = null,
+                description = null,
+                personalRating = personalRating,
+                storageName = null
+            )
+            LibraryFilter.BY_STORAGE -> repository.searchMovies(
+                title = null,
+                genre = null,
+                minRating = null,
+                maxRating = null,
+                description = null,
+                personalRating = null,
+                storageName = query.ifBlank { null }
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val storages: StateFlow<List<StorageEntity>> = repository.getAllStorages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -65,6 +144,22 @@ class MainViewModel(context: Context) : ViewModel() {
     fun clearSelectedMovie() {
         _selectedMovie.value = null
         _movieFiles.value = emptyList()
+    }
+
+    fun setLibraryFilter(filter: LibraryFilter) {
+        _libraryFilter.value = filter
+    }
+
+    fun setFilterQuery(query: String) {
+        _filterQuery.value = query
+    }
+
+    fun setFilterPersonalRating(rating: Int?) {
+        _filterPersonalRating.value = rating
+    }
+
+    fun setFilterTmdbMinRating(rating: Double?) {
+        _filterTmdbMinRating.value = rating
     }
 
     fun addStorage(name: String) {

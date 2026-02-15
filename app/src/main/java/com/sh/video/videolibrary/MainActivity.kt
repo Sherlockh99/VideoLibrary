@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
+import com.sh.video.videolibrary.ui.screens.AboutScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
 import com.sh.video.videolibrary.ui.screens.MovieDetailScreen
@@ -65,8 +66,12 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 onCollectionClick = { navController.navigate("library") },
                                 onStoragesClick = { navController.navigate("storages") },
-                                onSettingsClick = { navController.navigate("settings") }
+                                onSettingsClick = { navController.navigate("settings") },
+                                onAboutClick = { navController.navigate("about") }
                             )
+                        }
+                        composable("about") {
+                            AboutScreen(onBack = { navController.popBackStack() })
                         }
                         composable("library") {
                             LibraryScreen(
@@ -90,7 +95,8 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel,
                                 onBack = { navController.popBackStack() },
                                 onExportClick = { exportLauncher.launch("videolibrary_export.vlp") },
-                                onImportClick = { importLauncher.launch(arrayOf("*/*")) }
+                                onImportClick = { importLauncher.launch(arrayOf("*/*")) },
+                                onAboutClick = { navController.navigate("about") }
                             )
                         }
                         composable("search") {
