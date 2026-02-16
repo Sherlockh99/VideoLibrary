@@ -125,7 +125,7 @@ class MovieRepository(
 
     /** Удаляет хранилище. Возвращает true если удалено. Нельзя удалить хранилище, к которому привязаны файлы. */
     /**
-     * И не только
+     * И не только + супер-пупер
      */
     suspend fun removeStorage(id: Long): Boolean {
         if (storageFileDao.getFileCountByStorageId(id) > 0) return false
