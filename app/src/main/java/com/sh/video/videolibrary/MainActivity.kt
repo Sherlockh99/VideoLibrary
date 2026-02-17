@@ -183,7 +183,6 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("tmdb_preview") {
                             val movie by viewModel.selectedTmdbForPreview.collectAsState()
-                            val returnToCategoryId by viewModel.returnToCategoryIdAfterAdd.collectAsState()
                             if (movie != null) {
                                 TmdbMoviePreviewScreen(
                                     movie = movie!!,
@@ -193,14 +192,15 @@ class MainActivity : ComponentActivity() {
                                         viewModel.clearUiStateError()
                                         navController.popBackStack()
                                     },
-                                    onMovieAdded = if (returnToCategoryId != null) {
-                                        {
-                                            viewModel.clearReturnToCategoryIdAfterAdd()
-                                            navController.navigate("category/$returnToCategoryId") {
-                                                popUpTo("search") { inclusive = true }
+                                    onMovieAdded = { movieId ->
+                                        viewModel.clearReturnToCategoryIdAfterAdd()
+                                        viewModel.setOpenDetailOnFilesTab(true)
+                                        viewModel.selectMovieById(movieId) {
+                                            navController.navigate("detail") {
+                                                popUpTo("tmdb_preview") { inclusive = true }
                                             }
                                         }
-                                    } else null
+                                    }
                                 )
                             }
                         }

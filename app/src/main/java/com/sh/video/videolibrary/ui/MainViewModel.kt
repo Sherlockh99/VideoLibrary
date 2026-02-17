@@ -554,6 +554,20 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieAddedSuccess = MutableStateFlow(false)
     val movieAddedSuccess = _movieAddedSuccess.asStateFlow()
 
+    private val _movieIdJustAdded = MutableStateFlow<Long?>(null)
+    val movieIdJustAdded = _movieIdJustAdded.asStateFlow()
+
+    private val _openDetailOnFilesTab = MutableStateFlow(false)
+    val openDetailOnFilesTab = _openDetailOnFilesTab.asStateFlow()
+
+    fun setOpenDetailOnFilesTab(value: Boolean) {
+        _openDetailOnFilesTab.value = value
+    }
+
+    fun clearOpenDetailOnFilesTab() {
+        _openDetailOnFilesTab.value = false
+    }
+
     fun addMovie(details: TmdbMediaDetails) {
         viewModelScope.launch {
             val id = repository.addMedia(details)
@@ -570,6 +584,7 @@ class MainViewModel(context: Context) : ViewModel() {
                         _categoryMovies.value = repository.getMoviesByCategoryId(catId)
                     }
                 }
+                _movieIdJustAdded.value = id
                 _movieAddedSuccess.value = true
             }
         }
@@ -577,6 +592,7 @@ class MainViewModel(context: Context) : ViewModel() {
 
     fun clearMovieAddedSuccess() {
         _movieAddedSuccess.value = false
+        _movieIdJustAdded.value = null
     }
 
     fun updateRating(id: Long, rating: Int) {

@@ -38,21 +38,19 @@ fun TmdbMoviePreviewScreen(
     movie: TmdbMediaDetails,
     viewModel: MainViewModel,
     onBack: () -> Unit,
-    onMovieAdded: (() -> Unit)? = null
+    onMovieAdded: (movieId: Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val movieAddedSuccess by viewModel.movieAddedSuccess.collectAsState()
+    val movieIdJustAdded by viewModel.movieIdJustAdded.collectAsState()
     val showAlreadyInCollection = uiState is MainViewModel.UiState.Error
 
-    LaunchedEffect(movieAddedSuccess) {
-        if (movieAddedSuccess) {
+    LaunchedEffect(movieAddedSuccess, movieIdJustAdded) {
+        if (movieAddedSuccess && movieIdJustAdded != null) {
+            val id = movieIdJustAdded!!
             viewModel.clearTmdbPreview()
             viewModel.clearMovieAddedSuccess()
-            if (onMovieAdded != null) {
-                onMovieAdded()
-            } else {
-                onBack()
-            }
+            onMovieAdded(id)
         }
     }
 

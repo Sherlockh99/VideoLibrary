@@ -70,8 +70,16 @@ fun MovieDetailScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit
 ) {
+    val openDetailOnFilesTab by viewModel.openDetailOnFilesTab.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var selectedRating by remember(movie.id) { mutableStateOf(movie.personalRating ?: 0) }
+
+    LaunchedEffect(openDetailOnFilesTab) {
+        if (openDetailOnFilesTab) {
+            selectedTabIndex = 1
+            viewModel.clearOpenDetailOnFilesTab()
+        }
+    }
     val movieFiles by viewModel.movieFiles.collectAsState()
     val storages by viewModel.storages.collectAsState()
     val categories by viewModel.categories.collectAsState()
