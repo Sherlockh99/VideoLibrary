@@ -52,7 +52,7 @@ fun MovieCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = movie.title,
+                    text = movie.title + if (movie.mediaType == "tv") " · Сериал" else "",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2
                 )

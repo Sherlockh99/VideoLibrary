@@ -94,7 +94,7 @@ fun MovieDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(movie.title) },
+                title = { Text(movie.title + if (movie.mediaType == "tv") " (сериал)" else "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -245,7 +245,7 @@ fun MovieDetailScreen(
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirmDialog = false },
                             title = { Text("Удалить фильм?") },
-                            text = { Text("Фильм \"${movie.title}\" будет удалён из коллекции. Это действие нельзя отменить.") },
+                            text = { Text("${if (movie.mediaType == "tv") "Сериал" else "Фильм"} \"${movie.title}\" будет удалён из коллекции. Это действие нельзя отменить.") },
                             confirmButton = {
                                 TextButton(onClick = {
                                     viewModel.removeMovie(movie.id)

@@ -27,6 +27,7 @@ data class ExportFormat(
 
     data class MovieExport(
         @SerializedName("tmdb_id") val tmdbId: Int,
+        @SerializedName("media_type") val mediaType: String? = null,
         val title: String,
         @SerializedName("original_title") val originalTitle: String,
         val genres: String,

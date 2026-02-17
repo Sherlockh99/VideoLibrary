@@ -18,7 +18,9 @@ import com.sh.video.videolibrary.data.local.StorageFileEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.remote.TmdbApi
+import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
+import com.sh.video.videolibrary.data.remote.TmdbTvDetails
 import com.sh.video.videolibrary.export.ExportFormat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -60,21 +62,25 @@ class MovieRepository(
         title, genre, minRating, maxRating, description, personalRating, storageName
     )
 
-    suspend fun searchTmdb(query: String) = tmdbApi.searchMovies(query = query)
+    suspend fun searchTmdbMovies(query: String) = tmdbApi.searchMovies(query = query)
 
-    suspend fun getTmdbDetails(movieId: Long) = tmdbApi.getMovieDetails(movieId)
+    suspend fun searchTmdbTv(query: String) = tmdbApi.searchTv(query = query)
+
+    suspend fun getTmdbMovieDetails(movieId: Long) = tmdbApi.getMovieDetails(movieId)
+
+    suspend fun getTmdbTvDetails(tvId: Long) = tmdbApi.getTvDetails(tvId)
 
     suspend fun getMovieById(id: Long): MovieEntity? = movieDao.getById(id)
 
-    suspend fun getMovieByTmdbId(tmdbId: Long): MovieEntity? = movieDao.getByTmdbId(tmdbId)
+    suspend fun getMovieByTmdbId(tmdbId: Long, mediaType: String = "movie"): MovieEntity? =
+        movieDao.getByTmdbIdAndMediaType(tmdbId, mediaType)
 
     suspend fun addMovie(details: TmdbMovieDetails): Long {
-        val exists = movieDao.existsByTmdbId(details.id)
-        if (exists) return -1
-
+        if (movieDao.existsByTmdbIdAndMediaType(details.id, "movie")) return -1
         val genres = details.genres?.joinToString(", ") { it.name } ?: ""
         val entity = MovieEntity(
             tmdbId = details.id,
+            mediaType = "movie",
             title = details.title,
             originalTitle = details.originalTitle ?: "",
             genres = genres,
@@ -86,6 +92,30 @@ class MovieRepository(
             createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
         return movieDao.insert(entity)
+    }
+
+    suspend fun addTvShow(details: TmdbTvDetails): Long {
+        if (movieDao.existsByTmdbIdAndMediaType(details.id, "tv")) return -1
+        val genres = details.genres?.joinToString(", ") { it.name } ?: ""
+        val entity = MovieEntity(
+            tmdbId = details.id,
+            mediaType = "tv",
+            title = details.name,
+            originalTitle = details.originalName ?: "",
+            genres = genres,
+            rating = details.voteAverage ?: 0.0,
+            overview = details.overview ?: "",
+            releaseDate = details.firstAirDate ?: "",
+            posterPath = details.posterPath,
+            personalRating = null,
+            createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        )
+        return movieDao.insert(entity)
+    }
+
+    suspend fun addMedia(details: TmdbMediaDetails): Long = when (details) {
+        is TmdbMediaDetails.Movie -> addMovie(details.data)
+        is TmdbMediaDetails.Tv -> addTvShow(details.data)
     }
 
     suspend fun updatePersonalRating(id: Long, rating: Int) {
@@ -238,6 +268,7 @@ class MovieRepository(
                 val categoryNames = getCategoriesByMovieId(m.id).map { it.name }
                 ExportFormat.MovieExport(
                     tmdbId = m.tmdbId.toInt(),
+                    mediaType = m.mediaType,
                     title = m.title,
                     originalTitle = m.originalTitle,
                     genres = m.genres,
@@ -272,13 +303,13 @@ class MovieRepository(
         var added = 0
         var skipped = 0
         for (m in data.movies) {
-            val exists = movieDao.existsByTmdbId(m.tmdbId.toLong())
+            val mediaType = m.mediaType ?: "movie"
+            val exists = movieDao.existsByTmdbIdAndMediaType(m.tmdbId.toLong(), mediaType)
             val filesData = m.files ?: emptyList()
 
             if (exists) {
                 if (replaceDuplicates) {
-                    val all = movieDao.getAllSync()
-                    val existing = all.find { it.tmdbId == m.tmdbId.toLong() }
+                    val existing = movieDao.getByTmdbIdAndMediaType(m.tmdbId.toLong(), mediaType)
                     if (existing != null) {
                         val updated = existing.copy(
                             title = m.title,
@@ -288,7 +319,8 @@ class MovieRepository(
                             overview = m.overview,
                             releaseDate = m.releaseDate,
                             posterPath = m.posterPath,
-                            personalRating = m.personalRating
+                            personalRating = m.personalRating,
+                            mediaType = mediaType
                         )
                         movieDao.update(updated)
                         fileDao.deleteByMovieId(existing.id)
@@ -314,6 +346,7 @@ class MovieRepository(
             val id = movieDao.insert(
                 MovieEntity(
                     tmdbId = m.tmdbId.toLong(),
+                    mediaType = mediaType,
                     title = m.title,
                     originalTitle = m.originalTitle,
                     genres = m.genres,

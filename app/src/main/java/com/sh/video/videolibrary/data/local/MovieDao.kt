@@ -16,11 +16,11 @@ interface MovieDao {
     @Query("SELECT * FROM movies WHERE id = :id")
     suspend fun getById(id: Long): MovieEntity?
 
-    @Query("SELECT EXISTS(SELECT 1 FROM movies WHERE tmdbId = :tmdbId)")
-    suspend fun existsByTmdbId(tmdbId: Long): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM movies WHERE tmdbId = :tmdbId AND mediaType = :mediaType)")
+    suspend fun existsByTmdbIdAndMediaType(tmdbId: Long, mediaType: String): Boolean
 
-    @Query("SELECT * FROM movies WHERE tmdbId = :tmdbId")
-    suspend fun getByTmdbId(tmdbId: Long): MovieEntity?
+    @Query("SELECT * FROM movies WHERE tmdbId = :tmdbId AND mediaType = :mediaType")
+    suspend fun getByTmdbIdAndMediaType(tmdbId: Long, mediaType: String): MovieEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(movie: MovieEntity): Long

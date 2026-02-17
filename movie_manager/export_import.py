@@ -48,6 +48,7 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
         "movies": [
             {
                 "tmdb_id": m.tmdb_id,
+                "media_type": m.media_type,
                 "title": m.title,
                 "original_title": m.original_title,
                 "genres": m.genres,
@@ -106,8 +107,11 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
         if tmdb_id is None:
             continue
 
+        media_type = m.get("media_type") or "movie"
+
         movie_data = {
             "tmdb_id": int(tmdb_id),
+            "media_type": media_type,
             "title": m.get("title", ""),
             "original_title": m.get("original_title", ""),
             "genres": m.get("genres", ""),
@@ -120,10 +124,11 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
 
         files_data = m.get("files", [])
 
-        if movie_exists(tmdb_id):
+        if movie_exists(tmdb_id, media_type):
             if replace_duplicates:
                 update_movie_from_import(
                     tmdb_id=movie_data["tmdb_id"],
+                    media_type=media_type,
                     title=movie_data["title"],
                     original_title=movie_data["original_title"],
                     genres=movie_data["genres"],
@@ -133,7 +138,7 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
                     poster_path=movie_data["poster_path"],
                     personal_rating=movie_data["personal_rating"],
                 )
-                movie = get_movie_by_tmdb_id(tmdb_id)
+                movie = get_movie_by_tmdb_id(tmdb_id, media_type)
                 if movie:
                     remove_files_by_movie_id(movie.id)
                     for file_item in files_data:
@@ -152,6 +157,7 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
 
         movie_id = add_movie(
             tmdb_id=movie_data["tmdb_id"],
+            media_type=media_type,
             title=movie_data["title"],
             original_title=movie_data["original_title"],
             genres=movie_data["genres"],

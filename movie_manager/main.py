@@ -2,7 +2,7 @@
 Программа для поиска фильмов на TMDb, добавления в базу и поиска в локальной коллекции.
 
 Использование:
-    python main.py add          - поиск и добавление фильма
+    python main.py add [--tv]   - поиск и добавление фильма (--tv для сериала)
     python main.py search       - поиск в своей коллекции
     python main.py list         - показать все фильмы
     python main.py rate <id> <1-5> - поставить свою оценку
@@ -45,18 +45,19 @@ from export_import import export_to_file, import_from_file
 
 def format_movie_short(idx: int, m: dict) -> str:
     """Краткое представление фильма из результата поиска TMDb."""
-    title = m.get("title", "Без названия")
-    year = (m.get("release_date") or "")[:4] or "?"
+    title = m.get("title") or m.get("name") or "Без названия"
+    year = (m.get("release_date") or m.get("first_air_date") or "")[:4] or "?"
     rating = m.get("vote_average") or 0
     return f"  {idx}. {title} ({year}) — рейтинг: {rating:.1f}"
 
 
 def format_movie_db(m: Movie, storage_names: list[str] | None = None) -> str:
-    """Представление фильма из базы данных."""
+    """Представление фильма/сериала из базы данных."""
     if storage_names is None:
         storage_names = get_storage_names_for_movie(m.id)
+    type_label = " (сериал)" if m.media_type == "tv" else ""
     lines = [
-        f"  [{m.id}] {m.title} ({m.release_date or '?'})",
+        f"  [{m.id}] {m.title}{type_label} ({m.release_date or '?'})",
         f"      Жанры: {m.genres or '-'}",
         f"      TMDb рейтинг: {m.rating:.1f}",
     ]
@@ -71,32 +72,40 @@ def format_movie_db(m: Movie, storage_names: list[str] | None = None) -> str:
 
 
 def cmd_add():
-    """Поиск фильма на TMDb и добавление в базу."""
+    """Поиск фильма или сериала на TMDb и добавление в базу."""
+    add_tv = "--tv" in sys.argv
+    if add_tv:
+        sys.argv = [a for a in sys.argv if a != "--tv"]
+
     try:
         client = TMDbClient()
     except ValueError as e:
         print(f"Ошибка: {e}")
         return 1
 
-    query = input("Введите название фильма для поиска: ").strip()
+    label = "сериала" if add_tv else "фильма"
+    query = input(f"Введите название {label} для поиска: ").strip()
     if not query:
         print("Название не может быть пустым.")
         return 1
 
     print("\nПоиск на TMDb...")
-    data = client.search_movies(query)
+    if add_tv:
+        data = client.search_tv(query)
+    else:
+        data = client.search_movies(query)
     results = data.get("results", [])
 
     if not results:
         print("Ничего не найдено.")
         return 0
 
-    print("\nНайдено фильмов:", len(results))
+    print(f"\nНайдено: {len(results)}")
     for i, m in enumerate(results[:15], 1):
         print(format_movie_short(i, m))
 
     try:
-        choice = input("\nВведите номер фильма для добавления (или 0 для отмены): ").strip()
+        choice = input(f"\nВведите номер для добавления (или 0 для отмены): ").strip()
         idx = int(choice)
         if idx == 0:
             return 0
@@ -109,26 +118,38 @@ def cmd_add():
 
     selected = results[idx - 1]
     tmdb_id = selected["id"]
+    media_type = "tv" if add_tv else "movie"
 
-    if movie_exists(tmdb_id):
-        print("Этот фильм уже есть в вашей коллекции.")
+    if movie_exists(tmdb_id, media_type):
+        print(f"Этот {label[:-1]} уже есть в вашей коллекции.")
         return 0
 
-    details = client.get_movie_details(tmdb_id)
-    genres = ", ".join(g["name"] for g in details.get("genres", []))
+    if add_tv:
+        details = client.get_tv_details(tmdb_id)
+        genres = ", ".join(g["name"] for g in details.get("genres", []))
+        title = details.get("name", selected.get("name", ""))
+        original = details.get("original_name", "") or ""
+        release = details.get("first_air_date") or ""
+    else:
+        details = client.get_movie_details(tmdb_id)
+        genres = ", ".join(g["name"] for g in details.get("genres", []))
+        title = details.get("title", selected.get("title", ""))
+        original = details.get("original_title", "") or ""
+        release = details.get("release_date") or ""
 
     add_movie(
         tmdb_id=tmdb_id,
-        title=details.get("title", selected.get("title", "")),
-        original_title=details.get("original_title", "") or "",
+        media_type=media_type,
+        title=title,
+        original_title=original,
         genres=genres,
         rating=float(details.get("vote_average") or 0),
         overview=details.get("overview") or "",
-        release_date=details.get("release_date") or "",
+        release_date=release,
         poster_path=details.get("poster_path"),
     )
 
-    print(f'\nФильм "{details.get("title")}" добавлен в коллекцию.')
+    print(f'\n{label.capitalize()} "{title}" добавлен в коллекцию.')
     return 0
 
 

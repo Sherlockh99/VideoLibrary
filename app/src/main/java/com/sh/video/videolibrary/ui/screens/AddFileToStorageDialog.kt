@@ -22,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +47,7 @@ import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.repository.FileWithStorages
-import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
+import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 
@@ -72,7 +73,7 @@ fun AddFileToStorageDialog(
     var fileName by remember { mutableStateOf("") }
     var sizeText by remember { mutableStateOf("") }
     var sourceTmdb by remember { mutableStateOf(true) }
-    var selectedTmdb by remember { mutableStateOf<TmdbMovieDetails?>(null) }
+    var selectedTmdb by remember { mutableStateOf<TmdbMediaDetails?>(null) }
     var selectedMovie by remember { mutableStateOf<MovieEntity?>(null) }
     var selectedExistingFileIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var createNewFile by remember { mutableStateOf(false) }
@@ -80,6 +81,7 @@ fun AddFileToStorageDialog(
     val scope = rememberCoroutineScope()
 
     val searchResults by viewModel.searchResults.collectAsState()
+    val searchMode by viewModel.searchMode.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val library by viewModel.library.collectAsState()
     val movieFilesForAdd by viewModel.movieFilesForAddDialog.collectAsState()
@@ -104,7 +106,7 @@ fun AddFileToStorageDialog(
 
     LaunchedEffect(selectedMovie, selectedTmdb) {
         val movieId = selectedMovie?.id
-            ?: selectedTmdb?.let { library.find { m -> m.tmdbId == it.id }?.id }
+            ?: selectedTmdb?.let { lib -> library.find { m -> m.tmdbId == lib.id && m.mediaType == lib.mediaType }?.id }
             ?: -1L
         viewModel.loadMovieFilesForAddDialog(movieId)
         selectedExistingFileIds = emptySet()
@@ -116,7 +118,7 @@ fun AddFileToStorageDialog(
             viewModel.clearMovieAddedSuccess()
             val details = selectedTmdb
             if (details != null) {
-                val movie = viewModel.getMovieByTmdbId(details.id)
+                val movie = viewModel.getMovieByTmdbId(details.id, details.mediaType)
                 if (movie != null) {
                     selectedMovie = movie
                     selectedTmdb = null
@@ -156,7 +158,7 @@ fun AddFileToStorageDialog(
                         fileName.trim(), sizeText.toLongOrNull() ?: 0L
                     )
                     else -> {
-                        addError = "Выберите фильм"
+                        addError = "Выберите фильм или сериал"
                         return@launch
                     }
                 }
@@ -210,12 +212,24 @@ fun AddFileToStorageDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        FilterChip(
+                            selected = searchMode == MainViewModel.SearchMode.MOVIE,
+                            onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.MOVIE) },
+                            label = { Text("Фильмы") }
+                        )
+                        FilterChip(
+                            selected = searchMode == MainViewModel.SearchMode.TV,
+                            onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.TV) },
+                            label = { Text("Сериалы") }
+                        )
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            placeholder = { Text("Название фильма") }
+                            placeholder = {
+                                Text(if (searchMode == MainViewModel.SearchMode.TV) "Название сериала" else "Название фильма")
+                            }
                         )
                         Button(
                             onClick = {
@@ -238,18 +252,19 @@ fun AddFileToStorageDialog(
                             modifier = Modifier.height(180.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            items(searchResults) { movie ->
-                                val inCollection = library.any { it.tmdbId == movie.id }
-                                val isSelected = selectedTmdb?.id == movie.id || selectedMovie?.tmdbId == movie.id
+                            items(searchResults) { item ->
+                                val inCollection = library.any { it.tmdbId == item.id && it.mediaType == item.mediaType }
+                                val isSelected = selectedTmdb?.id == item.id && selectedTmdb?.mediaType == item.mediaType ||
+                                        selectedMovie?.tmdbId == item.id && selectedMovie?.mediaType == item.mediaType
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
                                             if (inCollection) {
-                                                selectedMovie = library.find { it.tmdbId == movie.id }
+                                                selectedMovie = library.find { it.tmdbId == item.id && it.mediaType == item.mediaType }
                                                 selectedTmdb = null
                                             } else {
-                                                selectedTmdb = movie
+                                                selectedTmdb = item
                                                 selectedMovie = null
                                             }
                                         },
@@ -264,8 +279,8 @@ fun AddFileToStorageDialog(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AsyncImage(
-                                            model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
-                                            contentDescription = movie.title,
+                                            model = if (item.posterPath != null) TMDB_IMAGE_BASE + item.posterPath else null,
+                                            contentDescription = item.title,
                                             modifier = Modifier
                                                 .width(48.dp)
                                                 .height(72.dp),
@@ -277,11 +292,11 @@ fun AddFileToStorageDialog(
                                                 .padding(horizontal = 8.dp)
                                         ) {
                                             Text(
-                                                movie.title,
+                                                item.title,
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 maxLines = 2
                                             )
-                                            movie.releaseDate?.take(4)?.let {
+                                            item.releaseDate?.take(4)?.let {
                                                 Text(it, style = MaterialTheme.typography.bodySmall)
                                             }
                                         }
@@ -292,10 +307,10 @@ fun AddFileToStorageDialog(
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                        if (!inCollection && selectedTmdb?.id == movie.id) {
+                                        if (!inCollection && selectedTmdb?.id == item.id && selectedTmdb?.mediaType == item.mediaType) {
                                             Button(
                                                 modifier = Modifier.padding(4.dp),
-                                                onClick = { viewModel.addMovie(movie) }
+                                                onClick = { viewModel.addMovie(item) }
                                             ) {
                                                 Text("Добавить в коллекцию")
                                             }

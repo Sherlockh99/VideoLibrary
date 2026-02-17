@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
+import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 
@@ -44,10 +45,11 @@ import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 fun SearchTmdbScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
-    onMovieSelected: (TmdbMovieDetails) -> Unit
+    onMovieSelected: (TmdbMediaDetails) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
+    val searchMode by viewModel.searchMode.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val isSearching = uiState is MainViewModel.UiState.Loading
 
@@ -68,13 +70,30 @@ fun SearchTmdbScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = searchMode == MainViewModel.SearchMode.MOVIE,
+                    onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.MOVIE) },
+                    label = { Text("Фильмы") }
+                )
+                FilterChip(
+                    selected = searchMode == MainViewModel.SearchMode.TV,
+                    onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.TV) },
+                    label = { Text("Сериалы") }
+                )
+            }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Название фильма") },
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = {
+                    Text(if (searchMode == MainViewModel.SearchMode.TV) "Название сериала" else "Название фильма")
+                },
                 singleLine = true,
                 enabled = !isSearching,
                 trailingIcon = {
@@ -99,10 +118,10 @@ fun SearchTmdbScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(searchResults) { movie ->
+                items(searchResults) { item ->
                     TmdbSearchResultCard(
-                        movie = movie,
-                        onClick = { onMovieSelected(movie) }
+                        item = item,
+                        onClick = { onMovieSelected(item) }
                     )
                 }
             }
@@ -112,7 +131,7 @@ fun SearchTmdbScreen(
 
 @Composable
 private fun TmdbSearchResultCard(
-    movie: TmdbMovieDetails,
+    item: TmdbMediaDetails,
     onClick: () -> Unit
 ) {
     Card(
@@ -123,8 +142,8 @@ private fun TmdbSearchResultCard(
     ) {
         Row(modifier = Modifier.padding(8.dp)) {
             AsyncImage(
-                model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
-                contentDescription = movie.title,
+                model = if (item.posterPath != null) TMDB_IMAGE_BASE + item.posterPath else null,
+                contentDescription = item.title,
                 modifier = Modifier
                     .padding(4.dp)
                     .width(60.dp)
@@ -132,9 +151,12 @@ private fun TmdbSearchResultCard(
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(movie.title, style = MaterialTheme.typography.titleMedium)
-                movie.releaseDate?.take(4)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                Text("★ ${movie.voteAverage ?: 0}", style = MaterialTheme.typography.bodySmall)
+                Text(item.title, style = MaterialTheme.typography.titleMedium)
+                if (item.mediaType == "tv") {
+                    Text("Сериал", style = MaterialTheme.typography.labelSmall)
+                }
+                item.releaseDate?.take(4)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                Text("★ ${item.voteAverage ?: 0}", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

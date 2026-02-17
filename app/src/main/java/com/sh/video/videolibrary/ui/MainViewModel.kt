@@ -13,8 +13,8 @@ import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
+import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
-import com.sh.video.videolibrary.data.remote.TmdbSearchResponse
 import com.sh.video.videolibrary.data.repository.MovieRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -227,29 +227,29 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
-    suspend fun getMovieByTmdbId(tmdbId: Long): MovieEntity? =
-        repository.getMovieByTmdbId(tmdbId)
+    suspend fun getMovieByTmdbId(tmdbId: Long, mediaType: String = "movie"): MovieEntity? =
+        repository.getMovieByTmdbId(tmdbId, mediaType)
 
-    /** Добавляет файл в хранилище. Создаёт фильм если нужно, создаёт файл, привязывает к storageId. */
+    /** Добавляет файл в хранилище. Создаёт фильм/сериал если нужно, создаёт файл, привязывает к storageId. */
     suspend fun addFileToStorage(
         storageId: Long,
         movieId: Long?,
-        tmdbDetails: TmdbMovieDetails?,
+        tmdbDetails: TmdbMediaDetails?,
         fileName: String,
         fileSize: Long
     ): Result<Unit> = runCatching {
         val finalMovieId = when {
             movieId != null -> movieId
             tmdbDetails != null -> {
-                var id = repository.getMovieByTmdbId(tmdbDetails.id)?.id
+                var id = repository.getMovieByTmdbId(tmdbDetails.id, tmdbDetails.mediaType)?.id
                 if (id == null) {
-                    val added = repository.addMovie(tmdbDetails)
-                    id = if (added == -1L) repository.getMovieByTmdbId(tmdbDetails.id)?.id else added
-                    if (id == null) throw IllegalArgumentException("Не удалось добавить фильм")
+                    val added = repository.addMedia(tmdbDetails)
+                    id = if (added == -1L) repository.getMovieByTmdbId(tmdbDetails.id, tmdbDetails.mediaType)?.id else added
+                    if (id == null) throw IllegalArgumentException("Не удалось добавить в коллекцию")
                 }
                 id!!
             }
-            else -> throw IllegalArgumentException("Выберите фильм из коллекции или добавьте из TMDb")
+            else -> throw IllegalArgumentException("Выберите из коллекции или добавьте из TMDb")
         }
         val fileId = repository.addFile(finalMovieId, fileName, fileSize)
         repository.addFileToStorage(fileId, storageId)
@@ -362,11 +362,16 @@ class MainViewModel(context: Context) : ViewModel() {
         _returnToCategoryIdAfterAdd.value = null
     }
 
-    private val _searchResults = MutableStateFlow<List<TmdbMovieDetails>>(emptyList())
+    private val _searchResults = MutableStateFlow<List<TmdbMediaDetails>>(emptyList())
     val searchResults = _searchResults.asStateFlow()
 
-    private val _selectedTmdbForPreview = MutableStateFlow<TmdbMovieDetails?>(null)
+    private val _searchMode = MutableStateFlow(SearchMode.MOVIE)
+    val searchMode = _searchMode.asStateFlow()
+
+    private val _selectedTmdbForPreview = MutableStateFlow<TmdbMediaDetails?>(null)
     val selectedTmdbForPreview = _selectedTmdbForPreview.asStateFlow()
+
+    enum class SearchMode { MOVIE, TV }
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState = _uiState.asStateFlow()
@@ -504,13 +509,30 @@ class MainViewModel(context: Context) : ViewModel() {
         _movieDeleted.value = false
     }
 
+    fun setSearchMode(mode: SearchMode) {
+        _searchMode.value = mode
+        _searchResults.value = emptyList()
+    }
+
     fun searchTmdb(query: String) {
         viewModelScope.launch {
             _uiState.value = UiState.Loading
             try {
-                val response = repository.searchTmdb(query)
-                val details = response.results.mapNotNull { result ->
-                    runCatching { repository.getTmdbDetails(result.id) }.getOrNull()
+                val details = when (_searchMode.value) {
+                    SearchMode.MOVIE -> {
+                        val response = repository.searchTmdbMovies(query)
+                        response.results.mapNotNull { r ->
+                            runCatching { repository.getTmdbMovieDetails(r.id) }
+                                .getOrNull()?.let { TmdbMediaDetails.Movie(it) }
+                        }
+                    }
+                    SearchMode.TV -> {
+                        val response = repository.searchTmdbTv(query)
+                        response.results.mapNotNull { r ->
+                            runCatching { repository.getTmdbTvDetails(r.id) }
+                                .getOrNull()?.let { TmdbMediaDetails.Tv(it) }
+                        }
+                    }
                 }
                 _searchResults.value = details
                 _uiState.value = UiState.Success
@@ -520,7 +542,7 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun selectTmdbForPreview(details: TmdbMovieDetails) {
+    fun selectTmdbForPreview(details: TmdbMediaDetails) {
         _selectedTmdbForPreview.value = details
         if (_uiState.value is UiState.Error) _uiState.value = UiState.Idle
     }
@@ -532,11 +554,13 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieAddedSuccess = MutableStateFlow(false)
     val movieAddedSuccess = _movieAddedSuccess.asStateFlow()
 
-    fun addMovie(details: TmdbMovieDetails) {
+    fun addMovie(details: TmdbMediaDetails) {
         viewModelScope.launch {
-            val id = repository.addMovie(details)
+            val id = repository.addMedia(details)
             if (id == -1L) {
-                _uiState.value = UiState.Error("Фильм уже в коллекции")
+                _uiState.value = UiState.Error(
+                    if (details.mediaType == "tv") "Сериал уже в коллекции" else "Фильм уже в коллекции"
+                )
             } else {
                 _pendingCategoryIdForNewMovie?.let { catId ->
                     repository.setMovieCategories(id, repository.getCategoryIdsByMovieId(id) + catId)

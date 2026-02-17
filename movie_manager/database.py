@@ -8,9 +8,10 @@ from config import DB_PATH
 
 @dataclass
 class Movie:
-    """Модель фильма в базе данных."""
+    """Модель фильма/сериала в базе данных."""
     id: int
     tmdb_id: int
+    media_type: str  # "movie" или "tv"
     title: str
     original_title: str
     genres: str
@@ -47,7 +48,8 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tmdb_id INTEGER UNIQUE NOT NULL,
+            tmdb_id INTEGER NOT NULL,
+            media_type TEXT NOT NULL DEFAULT 'movie',
             title TEXT NOT NULL,
             original_title TEXT,
             genres TEXT,
@@ -111,6 +113,15 @@ def init_db():
     # Миграция: удалить старую таблицу movie_files если была
     cursor.execute("DROP TABLE IF EXISTS movie_files")
 
+    # Миграция: добавить media_type если его нет (существующие записи = фильмы)
+    cursor.execute("PRAGMA table_info(movies)")
+    columns = [row[1] for row in cursor.fetchall()]
+    if "media_type" not in columns:
+        cursor.execute("ALTER TABLE movies ADD COLUMN media_type TEXT NOT NULL DEFAULT 'movie'")
+        # Удаляем старый UNIQUE на tmdb_id если был, добавляем UNIQUE(tmdb_id, media_type)
+        # SQLite не поддерживает DROP CONSTRAINT, пересоздавать таблицу сложно — оставляем как есть
+        # (tmdb_id для movie и tv в разных пространствах ID в TMDB)
+
     conn.commit()
     conn.close()
 
@@ -125,16 +136,17 @@ def add_movie(
     release_date: str,
     poster_path: Optional[str] = None,
     personal_rating: Optional[int] = None,
+    media_type: str = "movie",
 ) -> int:
-    """Добавляет фильм в базу данных."""
+    """Добавляет фильм или сериал в базу данных."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT INTO movies (tmdb_id, title, original_title, genres, rating, overview, release_date, poster_path, personal_rating)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO movies (tmdb_id, media_type, title, original_title, genres, rating, overview, release_date, poster_path, personal_rating)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (tmdb_id, title, original_title, genres, rating, overview or "", release_date or "", poster_path, personal_rating),
+        (tmdb_id, media_type, title, original_title, genres, rating, overview or "", release_date or "", poster_path, personal_rating),
     )
     movie_id = cursor.lastrowid
     conn.commit()
@@ -142,11 +154,11 @@ def add_movie(
     return movie_id
 
 
-def movie_exists(tmdb_id: int) -> bool:
-    """Проверяет, есть ли фильм уже в базе."""
+def movie_exists(tmdb_id: int, media_type: str = "movie") -> bool:
+    """Проверяет, есть ли фильм/сериал уже в базе."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM movies WHERE tmdb_id = ?", (tmdb_id,))
+    cursor.execute("SELECT 1 FROM movies WHERE tmdb_id = ? AND media_type = ?", (tmdb_id, media_type))
     exists = cursor.fetchone() is not None
     conn.close()
     return exists
@@ -162,6 +174,7 @@ def update_movie_from_import(
     release_date: str,
     poster_path: Optional[str],
     personal_rating: Optional[int],
+    media_type: str = "movie",
 ) -> bool:
     """Обновляет фильм по tmdb_id (для импорта с заменой)."""
     conn = sqlite3.connect(DB_PATH)
@@ -170,10 +183,10 @@ def update_movie_from_import(
         """
         UPDATE movies SET
             title = ?, original_title = ?, genres = ?, rating = ?,
-            overview = ?, release_date = ?, poster_path = ?, personal_rating = ?
-        WHERE tmdb_id = ?
+            overview = ?, release_date = ?, poster_path = ?, personal_rating = ?, media_type = ?
+        WHERE tmdb_id = ? AND media_type = ?
         """,
-        (title, original_title, genres, rating, overview, release_date, poster_path, personal_rating, tmdb_id),
+        (title, original_title, genres, rating, overview, release_date, poster_path, personal_rating, media_type, tmdb_id, media_type),
     )
     updated = cursor.rowcount > 0
     conn.commit()
@@ -263,6 +276,7 @@ def search_movies(
         Movie(
             id=row["id"],
             tmdb_id=row["tmdb_id"],
+            media_type=row.get("media_type", "movie") or "movie",
             title=row["title"],
             original_title=row["original_title"] or "",
             genres=row["genres"] or "",
@@ -282,12 +296,12 @@ def get_all_movies() -> list[Movie]:
     return search_movies()
 
 
-def get_movie_by_tmdb_id(tmdb_id: int) -> Optional[Movie]:
-    """Получает фильм по tmdb_id."""
+def get_movie_by_tmdb_id(tmdb_id: int, media_type: str = "movie") -> Optional[Movie]:
+    """Получает фильм/сериал по tmdb_id и media_type."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM movies WHERE tmdb_id = ?", (tmdb_id,))
+    cursor.execute("SELECT * FROM movies WHERE tmdb_id = ? AND media_type = ?", (tmdb_id, media_type))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -295,6 +309,7 @@ def get_movie_by_tmdb_id(tmdb_id: int) -> Optional[Movie]:
     return Movie(
         id=row["id"],
         tmdb_id=row["tmdb_id"],
+        media_type=row.get("media_type", "movie") or "movie",
         title=row["title"],
         original_title=row["original_title"] or "",
         genres=row["genres"] or "",
@@ -320,6 +335,7 @@ def get_movie_by_id(movie_id: int) -> Optional[Movie]:
     return Movie(
         id=row["id"],
         tmdb_id=row["tmdb_id"],
+        media_type=row.get("media_type", "movie") or "movie",
         title=row["title"],
         original_title=row["original_title"] or "",
         genres=row["genres"] or "",

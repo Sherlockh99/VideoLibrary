@@ -8,6 +8,8 @@ data class MovieEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val tmdbId: Long,
+    /** "movie" или "tv" — тип контента (фильм или сериал) */
+    val mediaType: String = "movie",
     val title: String,
     val originalTitle: String,
     val genres: String,

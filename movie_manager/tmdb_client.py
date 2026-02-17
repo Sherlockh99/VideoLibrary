@@ -37,6 +37,17 @@ class TMDbClient:
         """Получение полной информации о фильме."""
         return self._request(f"/movie/{movie_id}")
 
+    def search_tv(self, query: str, page: int = 1) -> dict:
+        """Поиск сериалов по названию."""
+        return self._request(
+            "/search/tv",
+            {"query": query, "page": page},
+        )
+
+    def get_tv_details(self, tv_id: int) -> dict:
+        """Получение полной информации о сериале."""
+        return self._request(f"/tv/{tv_id}")
+
     def get_genres(self) -> list[dict]:
         """Получение списка жанров."""
         data = self._request("/genre/movie/list", {"language": "ru-RU"})

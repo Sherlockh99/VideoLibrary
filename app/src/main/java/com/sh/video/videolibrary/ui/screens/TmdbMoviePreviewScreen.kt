@@ -28,14 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
+import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TmdbMoviePreviewScreen(
-    movie: TmdbMovieDetails,
+    movie: TmdbMediaDetails,
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onMovieAdded: (() -> Unit)? = null
@@ -117,7 +117,7 @@ fun TmdbMoviePreviewScreen(
                 onClick = { viewModel.addMovie(movie) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Добавить в коллекцию")
+                Text(if (movie.mediaType == "tv") "Добавить сериал в коллекцию" else "Добавить в коллекцию")
             }
         }
     }
