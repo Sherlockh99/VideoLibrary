@@ -296,6 +296,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onGenreClick = { genreId ->
                                         navController.navigate("genre/$genreId")
+                                    },
+                                    onCategoryClick = { categoryId ->
+                                        navController.navigate("category/$categoryId")
                                     }
                                 )
                             }

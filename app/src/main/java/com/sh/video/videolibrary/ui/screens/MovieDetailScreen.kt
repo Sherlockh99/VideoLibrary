@@ -69,7 +69,8 @@ fun MovieDetailScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onActorClick: (actorId: Long) -> Unit = {},
-    onGenreClick: (genreId: Long) -> Unit = {}
+    onGenreClick: (genreId: Long) -> Unit = {},
+    onCategoryClick: (categoryId: Long) -> Unit = {}
 ) {
     val openDetailOnFilesTab by viewModel.openDetailOnFilesTab.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -435,7 +436,10 @@ fun MovieDetailScreen(
                             Text(
                                 category.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onCategoryClick(category.id) },
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis
                             )
