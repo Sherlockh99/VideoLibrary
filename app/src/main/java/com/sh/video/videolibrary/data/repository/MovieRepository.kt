@@ -1,6 +1,8 @@
 package com.sh.video.videolibrary.data.repository
 
 import android.content.Context
+import android.os.Build
+import com.sh.video.videolibrary.util.LocaleHelper
 import com.google.gson.Gson
 import com.sh.video.videolibrary.data.local.ActorDao
 import com.sh.video.videolibrary.data.local.ActorEntity
@@ -57,6 +59,27 @@ class MovieRepository(
     private val movieActorDao: MovieActorDao = db.movieActorDao()
     private val gson = Gson()
 
+    private fun getTmdbLanguage(): String {
+        return when (LocaleHelper.getStoredLanguage(context)) {
+            LocaleHelper.LANG_EN -> "en-US"
+            LocaleHelper.LANG_RU -> "ru-RU"
+            else -> {
+                val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    context.resources.configuration.locales[0]
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.resources.configuration.locale
+                }
+                val tag = if (locale.country.isNotEmpty()) {
+                    "${locale.language}-${locale.country.uppercase()}"
+                } else {
+                    locale.language
+                }
+                tag.ifEmpty { "en-US" }
+            }
+        }
+    }
+
     fun getAllMovies(): Flow<List<MovieEntity>> = movieDao.getAllFlow()
 
     fun searchMovies(
@@ -71,13 +94,17 @@ class MovieRepository(
         title, genre, minRating, maxRating, description, personalRating, storageName
     )
 
-    suspend fun searchTmdbMovies(query: String) = tmdbApi.searchMovies(query = query)
+    suspend fun searchTmdbMovies(query: String) =
+        tmdbApi.searchMovies(query = query, language = getTmdbLanguage())
 
-    suspend fun searchTmdbTv(query: String) = tmdbApi.searchTv(query = query)
+    suspend fun searchTmdbTv(query: String) =
+        tmdbApi.searchTv(query = query, language = getTmdbLanguage())
 
-    suspend fun getTmdbMovieDetails(movieId: Long) = tmdbApi.getMovieDetails(movieId)
+    suspend fun getTmdbMovieDetails(movieId: Long) =
+        tmdbApi.getMovieDetails(movieId, language = getTmdbLanguage())
 
-    suspend fun getTmdbTvDetails(tvId: Long) = tmdbApi.getTvDetails(tvId)
+    suspend fun getTmdbTvDetails(tvId: Long) =
+        tmdbApi.getTvDetails(tvId, language = getTmdbLanguage())
 
     suspend fun getMovieById(id: Long): MovieEntity? = movieDao.getById(id)
 
@@ -85,10 +112,11 @@ class MovieRepository(
         movieDao.getByTmdbIdAndMediaType(tmdbId, mediaType)
 
     private suspend fun ensureActorsForMovie(movieId: Long, tmdbId: Long, mediaType: String) {
+        val lang = getTmdbLanguage()
         val credits = runCatching {
             when (mediaType) {
-                "movie" -> tmdbApi.getMovieCredits(tmdbId)
-                else -> tmdbApi.getTvCredits(tmdbId)
+                "movie" -> tmdbApi.getMovieCredits(tmdbId, language = lang)
+                else -> tmdbApi.getTvCredits(tmdbId, language = lang)
             }
         }.getOrNull() ?: return
         val cast = credits.cast ?: return
