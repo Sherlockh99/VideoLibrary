@@ -246,6 +246,9 @@ class MainActivity : ComponentActivity() {
                                     onBack = {
                                         viewModel.clearSelectedMovie()
                                         navController.popBackStack()
+                                    },
+                                    onActorClick = { actorId ->
+                                        navController.navigate("actor/$actorId")
                                     }
                                 )
                             }

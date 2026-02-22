@@ -332,6 +332,15 @@ class MovieRepository(
 
     suspend fun getActorById(id: Long): ActorEntity? = actorDao.getById(id)
 
+    /** Возвращает до limit актёров в главных ролях для фильма (по порядку в титрах). */
+    suspend fun getTopActorsByMovieId(movieId: Long, limit: Int = 5): List<ActorEntity> {
+        val rows = movieActorDao.getActorsForMovies(listOf(movieId))
+        return rows
+            .filter { it.movieId == movieId }
+            .take(limit)
+            .map { ActorEntity(id = it.actorId, tmdbPersonId = it.tmdbPersonId, name = it.actorName) }
+    }
+
     /** Возвращает до limit актёров в главных ролях для каждого фильма (по порядку в титрах). */
     suspend fun getTopActorNamesByMovieIds(movieIds: List<Long>, limit: Int = 5): Map<Long, List<String>> {
         if (movieIds.isEmpty()) return emptyMap()

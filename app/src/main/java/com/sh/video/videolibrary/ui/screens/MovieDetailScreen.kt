@@ -3,6 +3,8 @@ package com.sh.video.videolibrary.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -63,12 +67,13 @@ private fun formatSize(size: Long): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MovieDetailScreen(
     movie: MovieEntity,
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onActorClick: (actorId: Long) -> Unit = {}
 ) {
     val openDetailOnFilesTab by viewModel.openDetailOnFilesTab.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -114,10 +119,14 @@ fun MovieDetailScreen(
     ) { padding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            Row(modifier = Modifier.padding(vertical = 16.dp)) {
+            Row(
+                modifier = Modifier.padding(vertical = 16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
                 AsyncImage(
                     model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
                     contentDescription = movie.title,
@@ -127,7 +136,11 @@ fun MovieDetailScreen(
                     contentScale = ContentScale.Crop
                 )
                 Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .align(Alignment.Top)
+                ) {
                     if (movie.originalTitle.isNotBlank()) {
                         Text(movie.originalTitle, style = MaterialTheme.typography.bodyMedium)
                     }
@@ -137,9 +150,6 @@ fun MovieDetailScreen(
                     }
                     if (movie.genres.isNotBlank()) {
                         Text("Жанры: ${movie.genres}", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (movieTopActors.isNotEmpty()) {
-                        Text("В ролях: ${movieTopActors.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -162,12 +172,35 @@ fun MovieDetailScreen(
                 )
             }
 
-            when (selectedTabIndex) {
+            Box(modifier = Modifier.weight(1f)) {
+                when (selectedTabIndex) {
                 0 -> Column(
                     modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
+                    if (movieTopActors.isNotEmpty()) {
+                        Text("В ролях", style = MaterialTheme.typography.titleSmall)
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            movieTopActors.forEachIndexed { index, actor ->
+                                if (index > 0) {
+                                    Text(", ", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Text(
+                                    text = actor.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { onActorClick(actor.id) }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     if (movie.overview.isNotBlank()) {
                         Text("Описание", style = MaterialTheme.typography.titleSmall)
                         Text(movie.overview, style = MaterialTheme.typography.bodyMedium)
@@ -195,6 +228,7 @@ fun MovieDetailScreen(
                 }
                 1 -> Column(
                     modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
@@ -322,6 +356,7 @@ fun MovieDetailScreen(
                 }
                 2 -> Column(
                     modifier = Modifier
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
@@ -407,6 +442,7 @@ fun MovieDetailScreen(
                         )
                     }
                 }
+            }
             }
         }
     }

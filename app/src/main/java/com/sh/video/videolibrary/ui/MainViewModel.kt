@@ -455,7 +455,7 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieFiles = MutableStateFlow<List<FileWithStorages>>(emptyList())
     val movieFiles = _movieFiles.asStateFlow()
 
-    private val _movieTopActors = MutableStateFlow<List<String>>(emptyList())
+    private val _movieTopActors = MutableStateFlow<List<ActorEntity>>(emptyList())
     val movieTopActors = _movieTopActors.asStateFlow()
 
     private val _movieFilesForAddDialog = MutableStateFlow<List<FileWithStorages>>(emptyList())
@@ -479,7 +479,7 @@ class MainViewModel(context: Context) : ViewModel() {
             _movieFiles.value = repository.getFilesByMovieId(movie.id)
             _movieCategories.value = repository.getCategoriesByMovieId(movie.id)
             repository.loadActorsFromTmdbIfEmpty(movie.id, movie.tmdbId, movie.mediaType)
-            _movieTopActors.value = repository.getTopActorNamesByMovieIds(listOf(movie.id), limit = 5)[movie.id] ?: emptyList()
+            _movieTopActors.value = repository.getTopActorsByMovieId(movie.id, limit = 5)
         }
     }
 
@@ -491,7 +491,7 @@ class MainViewModel(context: Context) : ViewModel() {
                 _movieFiles.value = repository.getFilesByMovieId(movieId)
                 _movieCategories.value = repository.getCategoriesByMovieId(movieId)
                 repository.loadActorsFromTmdbIfEmpty(movie.id, movie.tmdbId, movie.mediaType)
-                _movieTopActors.value = repository.getTopActorNamesByMovieIds(listOf(movieId), limit = 5)[movieId] ?: emptyList()
+                _movieTopActors.value = repository.getTopActorsByMovieId(movieId, limit = 5)
                 onSelected?.invoke()
             }
         }
