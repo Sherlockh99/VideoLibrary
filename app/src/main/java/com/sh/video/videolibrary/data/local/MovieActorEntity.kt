@@ -26,5 +26,7 @@ import androidx.room.PrimaryKey
 )
 data class MovieActorEntity(
     val movieId: Long,
-    val actorId: Long
+    val actorId: Long,
+    /** Порядок в титрах (billing order): меньше = главнее роль. null для старых записей */
+    val creditOrder: Int? = null
 )

@@ -175,7 +175,7 @@ fun CategoryDetailScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(categoryMovies) { movie ->
+                items(categoryMovies) { (movie, topActors) ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -184,7 +184,8 @@ fun CategoryDetailScreen(
                         MovieCard(
                             movie = movie,
                             onClick = { onMovieClick(movie) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            topActorNames = topActors
                         )
                         IconButton(
                             onClick = { movieToUnlink = movie },

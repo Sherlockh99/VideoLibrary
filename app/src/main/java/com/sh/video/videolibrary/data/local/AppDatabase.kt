@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ActorEntity::class,
         MovieActorEntity::class
     ],
-    version = 7
+    version = 8
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun movieDao(): MovieDao
@@ -140,6 +140,12 @@ private val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE movie_actors ADD COLUMN creditOrder INTEGER")
+    }
+}
+
 object DatabaseProvider {
     private var _database: AppDatabase? = null
 
@@ -149,7 +155,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "videolibrary.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
             .also { _database = it }
     }

@@ -8,6 +8,7 @@ import com.sh.video.videolibrary.data.local.AppDatabase
 import com.sh.video.videolibrary.data.local.CategoryDao
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.DatabaseProvider
+import com.sh.video.videolibrary.data.local.ActorForMovieRow
 import com.sh.video.videolibrary.data.local.MovieActorDao
 import com.sh.video.videolibrary.data.local.MovieActorEntity
 import com.sh.video.videolibrary.data.local.MovieCategoryDao
@@ -91,18 +92,18 @@ class MovieRepository(
             }
         }.getOrNull() ?: return
         val cast = credits.cast ?: return
-        val actorIds = mutableListOf<Long>()
+        val actorLinks = mutableListOf<Pair<Long, Int>>()
         for (member in cast) {
             val rowId = actorDao.insert(
                 ActorEntity(tmdbPersonId = member.id, name = member.name)
             )
             val actorId = if (rowId == -1L) actorDao.getIdByTmdbPersonId(member.id) else rowId
             if (actorId != null && actorId > 0) {
-                actorIds.add(actorId)
+                actorLinks.add(actorId to member.billingOrder)
             }
         }
-        if (actorIds.isNotEmpty()) {
-            movieActorDao.setMovieActors(movieId, actorIds)
+        if (actorLinks.isNotEmpty()) {
+            movieActorDao.setMovieActors(movieId, actorLinks)
         }
     }
 
@@ -289,6 +290,15 @@ class MovieRepository(
         movieActorDao.getMoviesByActorId(actorId)
 
     suspend fun getActorById(id: Long): ActorEntity? = actorDao.getById(id)
+
+    /** Возвращает до limit актёров в главных ролях для каждого фильма (по порядку в титрах). */
+    suspend fun getTopActorNamesByMovieIds(movieIds: List<Long>, limit: Int = 5): Map<Long, List<String>> {
+        if (movieIds.isEmpty()) return emptyMap()
+        val rows = movieActorDao.getActorsForMovies(movieIds)
+        return rows
+            .groupBy { it.movieId }
+            .mapValues { (_, list) -> list.take(limit).map { it.actorName } }
+    }
 
     suspend fun setMovieCategories(movieId: Long, categoryIds: List<Long>) {
         movieCategoryDao.setMovieCategories(movieId, categoryIds)

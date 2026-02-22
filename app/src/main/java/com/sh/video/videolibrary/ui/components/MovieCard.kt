@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.MovieEntity
@@ -27,7 +28,8 @@ const val TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 fun MovieCard(
     movie: MovieEntity,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    topActorNames: List<String> = emptyList()
 ) {
     Card(
         modifier = modifier
@@ -69,6 +71,15 @@ fun MovieCard(
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (topActorNames.isNotEmpty()) {
+                    Text(
+                        text = "В ролях: ${topActorNames.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {

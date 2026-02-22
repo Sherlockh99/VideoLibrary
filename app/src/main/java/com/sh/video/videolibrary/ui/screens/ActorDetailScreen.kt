@@ -114,11 +114,12 @@ fun ActorDetailScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(actorMovies) { movie ->
+                items(actorMovies) { (movie, topActors) ->
                     MovieCard(
                         movie = movie,
                         onClick = { onMovieClick(movie) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        topActorNames = topActors
                     )
                 }
             }

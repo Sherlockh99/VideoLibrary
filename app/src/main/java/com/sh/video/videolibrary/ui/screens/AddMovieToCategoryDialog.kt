@@ -49,11 +49,11 @@ fun AddMovieToCategoryDialog(
     var searchQuery by remember { mutableStateOf("") }
     val library by viewModel.library.collectAsState()
     val categoryMovies by viewModel.categoryMovies.collectAsState()
-    val linkedMovieIds = remember(categoryMovies) { categoryMovies.map { it.id }.toSet() }
+    val linkedMovieIds = remember(categoryMovies) { categoryMovies.map { it.first.id }.toSet() }
 
     val filteredLibrary = remember(library, searchQuery, linkedMovieIds) {
         val q = searchQuery.trim().lowercase()
-        val available = library.filter { it.id !in linkedMovieIds }
+        val available = library.filter { m -> m.id !in linkedMovieIds }
         if (q.isEmpty()) available else available.filter {
             it.title.lowercase().contains(q) || it.originalTitle.lowercase().contains(q)
         }
@@ -86,7 +86,7 @@ fun AddMovieToCategoryDialog(
             )
             if (filteredLibrary.isEmpty()) {
                 Text(
-                    if (library.all { it.id in linkedMovieIds }) "Все фильмы уже в этой категории"
+                    if (library.all { m -> m.id in linkedMovieIds }) "Все фильмы уже в этой категории"
                     else "Нет фильмов по запросу",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

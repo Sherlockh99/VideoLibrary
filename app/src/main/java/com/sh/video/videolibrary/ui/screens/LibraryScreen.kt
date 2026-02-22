@@ -57,7 +57,7 @@ fun LibraryScreen(
     onMovieClick: (MovieEntity) -> Unit,
     onBack: () -> Unit
 ) {
-    val library by viewModel.library.collectAsState()
+    val libraryWithActors by viewModel.libraryWithTopActors.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val libraryFilter by viewModel.libraryFilter.collectAsState()
     val filterQuery by viewModel.filterQuery.collectAsState()
@@ -183,7 +183,7 @@ fun LibraryScreen(
                     uiState is MainViewModel.UiState.Loading -> {
                         CircularProgressIndicator(Modifier.align(Alignment.Center))
                     }
-                    library.isEmpty() -> {
+                    libraryWithActors.isEmpty() -> {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -201,10 +201,11 @@ fun LibraryScreen(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(library) { movie ->
+                            items(libraryWithActors) { (movie, topActors) ->
                                 MovieCard(
                                     movie = movie,
-                                    onClick = { onMovieClick(movie) }
+                                    onClick = { onMovieClick(movie) },
+                                    topActorNames = topActors
                                 )
                             }
                         }

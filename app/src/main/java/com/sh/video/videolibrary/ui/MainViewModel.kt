@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -124,6 +125,16 @@ class MainViewModel(context: Context) : ViewModel() {
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Коллекция с актёрами в главных ролях (до 5 на фильм) для отображения на карточках. */
+    val libraryWithTopActors: StateFlow<List<Pair<MovieEntity, List<String>>>> = library
+        .flatMapLatest { movies ->
+            flow {
+                val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
+                emit(movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) })
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val storages: StateFlow<List<StorageEntity>> = repository.getAllStorages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -305,7 +316,7 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val movieCategories = _movieCategories.asStateFlow()
 
-    private val _categoryMovies = MutableStateFlow<List<MovieEntity>>(emptyList())
+    private val _categoryMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
     val categoryMovies = _categoryMovies.asStateFlow()
 
     private var _pendingCategoryIdForNewMovie: Long? = null
@@ -336,7 +347,7 @@ class MainViewModel(context: Context) : ViewModel() {
                 repository.setMovieCategories(movieId, currentIds + categoryId)
             }
             if (categoryId == _currentCategoryId) {
-                _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+                loadCategoryMoviesWithActors(categoryId)
             }
         }
     }
@@ -346,7 +357,7 @@ class MainViewModel(context: Context) : ViewModel() {
             val currentIds = repository.getCategoryIdsByMovieId(movieId)
             repository.setMovieCategories(movieId, currentIds.filter { it != categoryId })
             if (categoryId == _currentCategoryId) {
-                _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+                loadCategoryMoviesWithActors(categoryId)
             }
         }
     }
@@ -354,17 +365,25 @@ class MainViewModel(context: Context) : ViewModel() {
     fun loadCategoryMovies(categoryId: Long) {
         _currentCategoryId = categoryId
         viewModelScope.launch {
-            _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+            loadCategoryMoviesWithActors(categoryId)
         }
     }
 
-    private val _actorMovies = MutableStateFlow<List<MovieEntity>>(emptyList())
+    private suspend fun loadCategoryMoviesWithActors(categoryId: Long) {
+        val movies = repository.getMoviesByCategoryId(categoryId)
+        val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
+        _categoryMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+    }
+
+    private val _actorMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
     val actorMovies = _actorMovies.asStateFlow()
 
     fun loadActorMovies(actorId: Long) {
         _currentActorId = actorId
         viewModelScope.launch {
-            _actorMovies.value = repository.getMoviesByActorId(actorId)
+            val movies = repository.getMoviesByActorId(actorId)
+            val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
+            _actorMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
         }
     }
 
@@ -617,12 +636,14 @@ class MainViewModel(context: Context) : ViewModel() {
                     _returnToCategoryIdAfterAdd.value = catId
                     _pendingCategoryIdForNewMovie = null
                     if (catId == _currentCategoryId) {
-                        _categoryMovies.value = repository.getMoviesByCategoryId(catId)
+                        loadCategoryMoviesWithActors(catId)
                     }
                 }
                 _pendingActorIdForNewMovie?.let { actorId ->
                     if (actorId == _currentActorId) {
-                        _actorMovies.value = repository.getMoviesByActorId(actorId)
+                        val movies = repository.getMoviesByActorId(actorId)
+                        val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
+                        _actorMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
                     }
                     _pendingActorIdForNewMovie = null
                 }
