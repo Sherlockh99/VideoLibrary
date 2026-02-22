@@ -44,7 +44,24 @@ interface TmdbApi {
         @Path("tv_id") tvId: Long,
         @Query("language") language: String = "ru-RU"
     ): TmdbCreditsResponse
+
+    @GET("person/{person_id}/translations")
+    suspend fun getPersonTranslations(@Path("person_id") personId: Long): TmdbPersonTranslationsResponse
 }
+
+data class TmdbPersonTranslationsResponse(
+    val translations: List<TmdbPersonTranslation>?
+)
+
+data class TmdbPersonTranslation(
+    @SerializedName("iso_639_1") val iso6391: String?,
+    @SerializedName("iso_3166_1") val iso31661: String?,
+    val data: TmdbPersonTranslationData?
+)
+
+data class TmdbPersonTranslationData(
+    val name: String?
+)
 
 data class TmdbCreditsResponse(
     val cast: List<TmdbCastMember>?

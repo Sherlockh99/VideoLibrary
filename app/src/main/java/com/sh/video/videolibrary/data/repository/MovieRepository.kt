@@ -94,10 +94,16 @@ class MovieRepository(
         val cast = credits.cast ?: return
         val actorLinks = mutableListOf<Pair<Long, Int>>()
         for (member in cast) {
-            val rowId = actorDao.insert(
-                ActorEntity(tmdbPersonId = member.id, name = member.name)
-            )
-            val actorId = if (rowId == -1L) actorDao.getIdByTmdbPersonId(member.id) else rowId
+            val isMainRole = member.billingOrder < 10 // первые 10 в титрах (order 0–9)
+            val existingActorId = actorDao.getIdByTmdbPersonId(member.id)
+            val actorId = when {
+                isMainRole -> {
+                    val rowId = actorDao.insert(ActorEntity(tmdbPersonId = member.id, name = member.name))
+                    if (rowId == -1L) existingActorId else rowId
+                }
+                existingActorId != null -> existingActorId // Актёр уже в базе — привязываем к фильму
+                else -> null // После 10-го в титрах и не в базе — пропускаем
+            }
             if (actorId != null && actorId > 0) {
                 actorLinks.add(actorId to member.billingOrder)
             }
@@ -113,6 +119,24 @@ class MovieRepository(
         if (existingIds.isEmpty()) {
             ensureActorsForMovie(movieId, tmdbId, mediaType)
         }
+    }
+
+    /** Обновляет имена актёров на русские по данным TMDB (person translations). Возвращает количество обновлённых. */
+    suspend fun refreshActorNamesToRussian(): Int {
+        val actors = actorDao.getAllSync()
+        var updated = 0
+        for (actor in actors) {
+            val translations = runCatching { tmdbApi.getPersonTranslations(actor.tmdbPersonId) }.getOrNull()
+            val ruName = translations?.translations
+                ?.firstOrNull { it.iso6391 == "ru" || it.iso31661 == "RU" }
+                ?.data?.name
+                ?.takeIf { it.isNotBlank() }
+            if (ruName != null && ruName != actor.name) {
+                actorDao.update(actor.copy(name = ruName))
+                updated++
+            }
+        }
+        return updated
     }
 
     /** Обновляет актёров с TMDB для всей коллекции. Возвращает количество обработанных фильмов. */

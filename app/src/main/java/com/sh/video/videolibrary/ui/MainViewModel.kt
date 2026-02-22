@@ -443,6 +443,12 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _actorsRefreshInProgress = MutableStateFlow(false)
     val actorsRefreshInProgress = _actorsRefreshInProgress.asStateFlow()
 
+    private val _actorNamesRefreshResult = MutableStateFlow<ActorNamesRefreshResult?>(null)
+    val actorNamesRefreshResult = _actorNamesRefreshResult.asStateFlow()
+
+    private val _actorNamesRefreshInProgress = MutableStateFlow(false)
+    val actorNamesRefreshInProgress = _actorNamesRefreshInProgress.asStateFlow()
+
     private val _selectedMovie = MutableStateFlow<MovieEntity?>(null)
     val selectedMovie = _selectedMovie.asStateFlow()
 
@@ -747,6 +753,25 @@ class MainViewModel(context: Context) : ViewModel() {
         _actorsRefreshResult.value = null
     }
 
+    fun refreshActorNamesToRussian() {
+        viewModelScope.launch {
+            _actorNamesRefreshInProgress.value = true
+            _actorNamesRefreshResult.value = null
+            try {
+                val count = repository.refreshActorNamesToRussian()
+                _actorNamesRefreshResult.value = ActorNamesRefreshResult.Success(count)
+            } catch (e: Exception) {
+                _actorNamesRefreshResult.value = ActorNamesRefreshResult.Failure(e.message ?: "Ошибка")
+            } finally {
+                _actorNamesRefreshInProgress.value = false
+            }
+        }
+    }
+
+    fun clearActorNamesRefreshResult() {
+        _actorNamesRefreshResult.value = null
+    }
+
     sealed class UiState {
         object Idle : UiState()
         object Loading : UiState()
@@ -767,6 +792,11 @@ class MainViewModel(context: Context) : ViewModel() {
     sealed class ActorsRefreshResult {
         data class Success(val count: Int) : ActorsRefreshResult()
         data class Failure(val message: String) : ActorsRefreshResult()
+    }
+
+    sealed class ActorNamesRefreshResult {
+        data class Success(val updatedCount: Int) : ActorNamesRefreshResult()
+        data class Failure(val message: String) : ActorNamesRefreshResult()
     }
 
     // ViewModel needs Context - we hold it weakly

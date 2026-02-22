@@ -3,22 +3,25 @@ package com.sh.video.videolibrary.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.sh.video.videolibrary.data.repository.ActorWithMovieCount
 import com.sh.video.videolibrary.ui.MainViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +39,8 @@ fun ActorsScreen(
     onActorClick: (ActorWithMovieCount) -> Unit
 ) {
     val actorsWithCounts by viewModel.actorsWithMovieCounts.collectAsState()
+    val actorNamesRefreshResult by viewModel.actorNamesRefreshResult.collectAsState()
+    val actorNamesRefreshInProgress by viewModel.actorNamesRefreshInProgress.collectAsState()
 
     Scaffold(
         topBar = {
@@ -44,10 +50,55 @@ fun ActorsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.refreshActorNamesToRussian() },
+                        enabled = !actorNamesRefreshInProgress && actorsWithCounts.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Обновить имена на русский")
+                    }
                 }
             )
         }
     ) { padding ->
+        when (val result = actorNamesRefreshResult) {
+            is MainViewModel.ActorNamesRefreshResult.Success -> {
+                Text(
+                    text = "Обновлено имён: ${result.updatedCount}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(16.dp)
+                )
+                LaunchedEffect(result) {
+                    delay(5000)
+                    viewModel.clearActorNamesRefreshResult()
+                }
+            }
+            is MainViewModel.ActorNamesRefreshResult.Failure -> {
+                Text(
+                    text = "Ошибка: ${result.message}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+                LaunchedEffect(result) {
+                    delay(5000)
+                    viewModel.clearActorNamesRefreshResult()
+                }
+            }
+            null -> {}
+        }
+        if (actorNamesRefreshInProgress) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.padding(0.dp))
+                Text("Обновление имён...", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
         if (actorsWithCounts.isEmpty()) {
             Column(
                 modifier = Modifier
