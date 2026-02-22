@@ -437,6 +437,12 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _importResult = MutableStateFlow<ImportResult?>(null)
     val importResult = _importResult.asStateFlow()
 
+    private val _actorsRefreshResult = MutableStateFlow<ActorsRefreshResult?>(null)
+    val actorsRefreshResult = _actorsRefreshResult.asStateFlow()
+
+    private val _actorsRefreshInProgress = MutableStateFlow(false)
+    val actorsRefreshInProgress = _actorsRefreshInProgress.asStateFlow()
+
     private val _selectedMovie = MutableStateFlow<MovieEntity?>(null)
     val selectedMovie = _selectedMovie.asStateFlow()
 
@@ -722,6 +728,25 @@ class MainViewModel(context: Context) : ViewModel() {
         _importResult.value = null
     }
 
+    fun refreshActorsForAllMovies() {
+        viewModelScope.launch {
+            _actorsRefreshInProgress.value = true
+            _actorsRefreshResult.value = null
+            try {
+                val count = repository.refreshActorsForAllMovies()
+                _actorsRefreshResult.value = ActorsRefreshResult.Success(count)
+            } catch (e: Exception) {
+                _actorsRefreshResult.value = ActorsRefreshResult.Failure(e.message ?: "Ошибка")
+            } finally {
+                _actorsRefreshInProgress.value = false
+            }
+        }
+    }
+
+    fun clearActorsRefreshResult() {
+        _actorsRefreshResult.value = null
+    }
+
     sealed class UiState {
         object Idle : UiState()
         object Loading : UiState()
@@ -737,6 +762,11 @@ class MainViewModel(context: Context) : ViewModel() {
     sealed class ImportResult {
         data class Success(val added: Int, val skipped: Int) : ImportResult()
         data class Failure(val message: String) : ImportResult()
+    }
+
+    sealed class ActorsRefreshResult {
+        data class Success(val count: Int) : ActorsRefreshResult()
+        data class Failure(val message: String) : ActorsRefreshResult()
     }
 
     // ViewModel needs Context - we hold it weakly

@@ -115,6 +115,15 @@ class MovieRepository(
         }
     }
 
+    /** Обновляет актёров с TMDB для всей коллекции. Возвращает количество обработанных фильмов. */
+    suspend fun refreshActorsForAllMovies(): Int {
+        val movies = movieDao.getAllSync()
+        for (movie in movies) {
+            ensureActorsForMovie(movie.id, movie.tmdbId, movie.mediaType)
+        }
+        return movies.size
+    }
+
     suspend fun addMovie(details: TmdbMovieDetails): Long {
         if (movieDao.existsByTmdbIdAndMediaType(details.id, "movie")) return -1
         val genres = details.genres?.joinToString(", ") { it.name } ?: ""
