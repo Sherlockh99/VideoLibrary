@@ -18,12 +18,16 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,6 +45,12 @@ fun ActorsScreen(
     val actorsWithCounts by viewModel.actorsWithMovieCounts.collectAsState()
     val actorNamesRefreshResult by viewModel.actorNamesRefreshResult.collectAsState()
     val actorNamesRefreshInProgress by viewModel.actorNamesRefreshInProgress.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredActors = remember(actorsWithCounts, searchQuery) {
+        val q = searchQuery.trim().lowercase()
+        if (q.isEmpty()) actorsWithCounts
+        else actorsWithCounts.filter { it.actor.name.lowercase().contains(q) }
+    }
 
     Scaffold(
         topBar = {
@@ -120,31 +130,54 @@ fun ActorsScreen(
                 )
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(actorsWithCounts) { item ->
-                    Row(
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Поиск актёра") },
+                    singleLine = true
+                )
+                if (filteredActors.isEmpty()) {
+                    Text(
+                        text = "Ничего не найдено",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(32.dp)
+                    )
+                } else {
+                    LazyColumn(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onActorClick(item) }
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = item.actor.name,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Фильмов: ${item.movieCount}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
+                        items(filteredActors) { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onActorClick(item) }
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = item.actor.name,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "Фильмов: ${item.movieCount}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
                     }
                 }
             }
