@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.repository.ActorWithMovieCount
@@ -304,7 +305,7 @@ class MainViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             _categoryRemoveError.value = null
             if (!repository.removeCategory(id)) {
-                _categoryRemoveError.value = "Нельзя удалить: к категории привязаны фильмы"
+                _categoryRemoveError.value = app.getString(R.string.error_category_has_movies)
             }
         }
     }
@@ -536,7 +537,7 @@ class MainViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             _storageRemoveError.value = null
             if (!repository.removeStorage(id)) {
-                _storageRemoveError.value = "Нельзя удалить: к хранилищу привязаны файлы"
+                _storageRemoveError.value = app.getString(R.string.error_storage_has_files)
             }
         }
     }
@@ -612,7 +613,7 @@ class MainViewModel(context: Context) : ViewModel() {
                 _searchResults.value = details
                 _uiState.value = UiState.Success
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "Ошибка поиска")
+                _uiState.value = UiState.Error(e.message ?: app.getString(R.string.error_search))
             }
         }
     }
@@ -648,7 +649,7 @@ class MainViewModel(context: Context) : ViewModel() {
             val id = repository.addMedia(details)
             if (id == -1L) {
                 _uiState.value = UiState.Error(
-                    if (details.mediaType == "tv") "Сериал уже в коллекции" else "Фильм уже в коллекции"
+                    if (details.mediaType == "tv") app.getString(R.string.error_tv_already_in_collection) else app.getString(R.string.error_movie_already_in_collection)
                 )
             } else {
                 _pendingCategoryIdForNewMovie?.let { catId ->

@@ -30,7 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.repository.ActorWithMovieCount
 import com.sh.video.videolibrary.ui.MainViewModel
 import kotlinx.coroutines.delay
@@ -55,10 +57,10 @@ fun ActorsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Актеры") },
+                title = { Text(stringResource(R.string.actors_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -66,7 +68,7 @@ fun ActorsScreen(
                         onClick = { viewModel.refreshActorNamesToRussian() },
                         enabled = !actorNamesRefreshInProgress && actorsWithCounts.isNotEmpty()
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Обновить имена на русский")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.actors_refresh_names))
                     }
                 }
             )
@@ -75,7 +77,7 @@ fun ActorsScreen(
         when (val result = actorNamesRefreshResult) {
             is MainViewModel.ActorNamesRefreshResult.Success -> {
                 Text(
-                    text = "Обновлено имён: ${result.updatedCount}",
+                    text = stringResource(R.string.actors_updated, result.updatedCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(16.dp)
@@ -87,7 +89,7 @@ fun ActorsScreen(
             }
             is MainViewModel.ActorNamesRefreshResult.Failure -> {
                 Text(
-                    text = "Ошибка: ${result.message}",
+                    text = stringResource(R.string.error_prefix, result.message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp)
@@ -106,7 +108,7 @@ fun ActorsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CircularProgressIndicator(modifier = Modifier.padding(0.dp))
-                Text("Обновление имён...", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.actors_refreshing), style = MaterialTheme.typography.bodyMedium)
             }
         }
         if (actorsWithCounts.isEmpty()) {
@@ -119,11 +121,11 @@ fun ActorsScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Нет актеров в базе",
+                    text = stringResource(R.string.actors_empty),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "Добавьте фильмы или сериалы из TMDb — актеры загрузятся автоматически",
+                    text = stringResource(R.string.actors_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 8.dp)
@@ -141,12 +143,12 @@ fun ActorsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Поиск актёра") },
+                    placeholder = { Text(stringResource(R.string.actors_search_placeholder)) },
                     singleLine = true
                 )
                 if (filteredActors.isEmpty()) {
                     Text(
-                        text = "Ничего не найдено",
+                        text = stringResource(R.string.actors_nothing_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.padding(32.dp)
@@ -172,7 +174,7 @@ fun ActorsScreen(
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "Фильмов: ${item.movieCount}",
+                                    text = stringResource(R.string.actors_movies_count, item.movieCount),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )

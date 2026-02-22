@@ -27,7 +27,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.ui.MainViewModel
@@ -54,7 +56,7 @@ fun ActorDetailScreen(
                 title = { Text(actor.name, maxLines = 2) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -66,7 +68,7 @@ fun ActorDetailScreen(
                     onAddFromTmdb()
                 }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить из TMDb")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_from_tmdb))
             }
         }
     ) { padding ->
@@ -79,9 +81,9 @@ fun ActorDetailScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Нет фильмов с этим актером в коллекции")
+                Text(stringResource(R.string.no_movies_with_actor))
                 Text(
-                    "Нажмите + чтобы добавить фильм или сериал с TMDb",
+                    stringResource(R.string.add_from_tmdb_hint),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -97,7 +99,7 @@ fun ActorDetailScreen(
                         }
                     ) {
                         Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
-                        Text("Добавить из TMDb")
+                        Text(stringResource(R.string.add_from_tmdb))
                     }
                 }
             }

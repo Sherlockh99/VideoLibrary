@@ -1,3 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">VideoLibrary</string>
+    <string name="app_name">Video Library</string>
+
+    <!-- Home -->
+    <string name="home_title">Video Library</string>
+    <string name="home_subtitle">Your video library</string>
+    <string name="home_collection">My Collection</string>
+    <string name="home_collection_subtitle">Movies added from TMDb</string>
+    <string name="home_storage">Storage</string>
+    <string name="home_storage_subtitle">Disks and file storage locations</string>
+    <string name="home_categories">Categories</string>
+    <string name="home_categories_subtitle">Tags and labels for movies</string>
+    <string name="home_settings">Settings</string>
+    <string name="home_settings_subtitle">Import and export .vlp</string>
+    <string name="home_actors">Actors</string>
+    <string name="home_actors_subtitle">Actors from your collection</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="add">Add</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="close">Close</string>
+    <string name="search">Search</string>
+    <string name="filter">Filter</string>
+    <string name="loading">Loading…</string>
+    <string name="error_prefix">Error: %s</string>
+
+    <!-- Library -->
+    <string name="library_title">My Collection</string>
+    <string name="library_filter">Library filter</string>
+    <string name="library_add">Add</string>
+    <string name="library_empty">Collection is empty</string>
+    <string name="library_add_hint">Tap + to add a movie</string>
+    <string name="filter_all">All movies</string>
+    <string name="filter_by_title">By title</string>
+    <string name="filter_by_genre">By genre</string>
+    <string name="filter_by_tmdb_rating">By TMDb rating</string>
+    <string name="filter_by_personal_rating">By my rating</string>
+    <string name="filter_by_storage">By storage</string>
+    <string name="placeholder_movie_title">Movie title</string>
+    <string name="placeholder_genre">Genre</string>
+    <string name="placeholder_min_rating">Min. rating (0–10)</string>
+    <string name="placeholder_storage_name">Storage name</string>
+
+    <!-- Storage filters -->
+    <string name="storage_filter_all">All files</string>
+    <string name="storage_filter_by_title">By title</string>
+    <string name="storage_filter_by_genre">By genre</string>
+    <string name="storage_filter_by_tmdb">By TMDb rating</string>
+    <string name="storage_filter_by_personal">By my rating</string>
+    <string name="storage_filter_by_filename">By file name</string>
+
+    <!-- Storages -->
+    <string name="storages_title">Storage</string>
+    <string name="storages_add">Add storage</string>
+    <string name="storages_empty">No storage. Add one.</string>
+    <string name="storages_files_count">Files: %d</string>
+    <string name="edit_storage_title">Rename storage</string>
+    <string name="delete_storage_title">Delete storage?</string>
+    <string name="delete_storage_confirm">Storage "%s" will be deleted.</string>
+    <string name="delete_storage_has_files">Cannot delete: storage "%s" has linked files (%d). Remove file links in movie cards first.</string>
+    <string name="add_storage_title">Add storage</string>
+    <string name="label_storage_name">Storage name</string>
+    <string name="edit_name">Rename</string>
+    <string name="got_it">Got it</string>
+    <string name="remove_from_storage">Remove from storage</string>
+    <string name="delete_file_from_storage_title">Remove file from storage?</string>
+    <string name="delete_file_from_storage_text">File "%s" will be unlinked from storage "%s". The file will remain in movie "%s" card.</string>
+    <string name="storage_no_files_filter">No files matching filter</string>
+    <string name="storage_no_files">No files on this storage</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Categories</string>
+    <string name="categories_add">Add category</string>
+    <string name="categories_empty">No categories. Add one.</string>
+    <string name="categories_movies_count">Movies: %d</string>
+    <string name="edit_category_title">Rename category</string>
+    <string name="delete_category_title">Delete category?</string>
+    <string name="delete_category_confirm">Category "%s" will be deleted.</string>
+    <string name="delete_category_has_movies">Cannot delete: category "%s" has linked movies (%d). Unlink them in movie cards first.</string>
+    <string name="add_category_title">Add category</string>
+    <string name="label_category_name">Category name</string>
+    <string name="new_category">New category</string>
+    <string name="create_and_add">Create and add</string>
+    <string name="select_category">Select category:</string>
+    <string name="no_categories_found">Nothing found</string>
+    <string name="no_available_categories">No available categories</string>
+    <string name="error_category_has_movies">Cannot delete: category has linked movies</string>
+    <string name="error_storage_has_files">Cannot delete: storage has linked files</string>
+
+    <!-- Actors -->
+    <string name="actors_title">Actors</string>
+    <string name="actors_refresh_names">Refresh names to Russian</string>
+    <string name="actors_updated">Names updated: %d</string>
+    <string name="actors_empty">No actors in database</string>
+    <string name="actors_empty_hint">Add movies or TV shows from TMDb — actors will load automatically</string>
+    <string name="actors_search_placeholder">Search actor</string>
+    <string name="actors_nothing_found">Nothing found</string>
+    <string name="actors_movies_count">Movies: %d</string>
+    <string name="actors_refreshing">Updating names…</string>
+    <string name="add_from_tmdb">Add from TMDb</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_subtitle">App interface language</string>
+    <string name="language_system">System default</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_english">English</string>
+    <string name="settings_export">Export to .vlp</string>
+    <string name="settings_export_subtitle">Save collection to file</string>
+    <string name="settings_import">Import from .vlp</string>
+    <string name="settings_import_subtitle">Load collection from file</string>
+    <string name="settings_refresh_actors">Refresh actors</string>
+    <string name="settings_refresh_actors_subtitle">Load actors from TMDb for entire collection</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_subtitle">Info and TMDb attribution</string>
+    <string name="exported_count">Exported movies: %d</string>
+    <string name="actors_refreshed_count">Updated movies: %d</string>
+    <string name="import_result">Added: %d, skipped: %d</string>
+
+    <!-- Movie detail -->
+    <string name="movie_tv_suffix"> (TV series)</string>
+    <string name="movie_about_tab">About</string>
+    <string name="movie_files_tab">Files</string>
+    <string name="movie_categories_tab">Categories</string>
+    <string name="cast">Cast</string>
+    <string name="description">Description</string>
+    <string name="your_rating">Your rating</string>
+    <string name="genres_label">Genres: %s</string>
+    <string name="add_file">Add file</string>
+    <string name="delete_movie">Delete movie</string>
+    <string name="delete_movie_hint">Delete all movie files first</string>
+    <string name="delete_file_title">Delete file?</string>
+    <string name="delete_file_text">File "%s" will be removed from collection.</string>
+    <string name="delete_movie_title">Delete movie?</string>
+    <string name="delete_movie_text_movie">Movie "%s" will be removed from collection. This cannot be undone.</string>
+    <string name="delete_movie_text_tv">TV series "%s" will be removed from collection. This cannot be undone.</string>
+    <string name="unlink_category_title">Unlink category?</string>
+    <string name="unlink_category_text">Category "%s" will be unlinked from this movie.</string>
+    <string name="unlink_category">Unlink category</string>
+    <string name="edit_file_title">Edit file</string>
+    <string name="add_file_title">Add file</string>
+    <string name="label_file_name">File name</string>
+    <string name="label_file_size">Size (bytes)</string>
+    <string name="storages_label">Storage:</string>
+    <string name="no_storages_hint">No storage. Add in Storage.</string>
+    <string name="no_categories_linked">No linked categories. Tap \"Add category\".</string>
+    <string name="unlink_movie_from_category_title">Unlink movie from category?</string>
+    <string name="unlink_movie_from_category_text">Movie "%s" will be unlinked from category "%s".</string>
+    <string name="unlink">Unlink</string>
+    <string name="unlink_from_category">Unlink from category</string>
+
+    <!-- Movie card -->
+    <string name="movie_tv_label"> · TV series</string>
+    <string name="cast_format">Cast: %s</string>
+
+    <!-- Search TMDb -->
+    <string name="search_tmdb_title">Search on TMDb</string>
+    <string name="search_movies">Movies</string>
+    <string name="search_tv">TV series</string>
+    <string name="placeholder_tv_title">TV series title</string>
+    <string name="search_button">Search</string>
+    <string name="tv_label">TV series</string>
+
+    <!-- TMDb preview -->
+    <string name="add_to_collection">Add to collection</string>
+    <string name="add_tv_to_collection">Add TV series to collection</string>
+
+    <!-- Add file to storage dialog -->
+    <string name="add_file_to_storage">Add file to %s</string>
+    <string name="search_tmdb_option">Search TMDb</string>
+    <string name="from_collection_option">From collection</string>
+    <string name="search_by_title">Search by title</string>
+    <string name="collection_empty">Collection is empty. Use TMDb search.</string>
+    <string name="no_movies_for_query">No movies matching query</string>
+    <string name="add_to_collection_btn">Add to collection</string>
+    <string name="file_label">File</string>
+    <string name="create_new_file">Create new file</string>
+    <string name="error_select_movie">Select a movie or TV series</string>
+    <string name="error_select_files_or_create">Select files or create new</string>
+
+    <!-- Category detail -->
+    <string name="add_movie_to_category">Add movie to category</string>
+    <string name="add_movie_to_category_name">Add movie to \"%s\"</string>
+    <string name="all_movies_in_category">All movies are already in this category</string>
+    <string name="from_collection">From collection</string>
+    <string name="from_tmdb">From TMDb</string>
+
+    <!-- Actor detail -->
+    <string name="no_movies_with_actor">No movies with this actor in collection</string>
+    <string name="add_from_tmdb_hint">Tap + to add a movie or TV series from TMDb</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_version">Version 1.0</string>
+    <string name="tmdb_attribution">This product uses the TMDb API but is not endorsed or certified by TMDb.</string>
+    <string name="tmdb_logo">TMDb Logo</string>
+
+    <!-- Size units -->
+    <string name="size_gb">%.1f GB</string>
+    <string name="size_mb">%.1f MB</string>
+    <string name="size_kb">%.1f KB</string>
+    <string name="size_bytes">%d B</string>
+
+    <!-- ViewModel errors (used with context.getString) -->
+    <string name="error_search">Search error</string>
+    <string name="error_generic">Error</string>
+    <string name="error_movie_already_in_collection">Movie already in collection</string>
+    <string name="error_tv_already_in_collection">TV series already in collection</string>
 </resources>

@@ -49,23 +49,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.repository.FileWithStorages
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
-
-private fun formatSize(size: Long): String {
-    return when {
-        size >= 1_000_000_000 -> "%.1f ГБ".format(size / 1_000_000_000.0)
-        size >= 1_000_000 -> "%.1f МБ".format(size / 1_000_000.0)
-        size >= 1_000 -> "%.1f КБ".format(size / 1_000.0)
-        else -> "$size Б"
-    }
-}
+import com.sh.video.videolibrary.ui.components.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -108,10 +102,10 @@ fun MovieDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(movie.title + if (movie.mediaType == "tv") " (сериал)" else "") },
+                title = { Text(movie.title + if (movie.mediaType == "tv") stringResource(R.string.movie_tv_suffix) else "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -149,7 +143,7 @@ fun MovieDetailScreen(
                         Text(movie.releaseDate.take(4), style = MaterialTheme.typography.bodyMedium)
                     }
                     if (movie.genres.isNotBlank()) {
-                        Text("Жанры: ${movie.genres}", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.genres_label, movie.genres), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -158,17 +152,17 @@ fun MovieDetailScreen(
                 Tab(
                     selected = selectedTabIndex == 0,
                     onClick = { selectedTabIndex = 0 },
-                    text = { Text("О фильме") }
+                    text = { Text(stringResource(R.string.movie_about_tab)) }
                 )
                 Tab(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
-                    text = { Text("Файлы") }
+                    text = { Text(stringResource(R.string.movie_files_tab)) }
                 )
                 Tab(
                     selected = selectedTabIndex == 2,
                     onClick = { selectedTabIndex = 2 },
-                    text = { Text("Категории") }
+                    text = { Text(stringResource(R.string.movie_categories_tab)) }
                 )
             }
 
@@ -181,7 +175,7 @@ fun MovieDetailScreen(
                         .padding(vertical = 16.dp)
                 ) {
                     if (movieTopActors.isNotEmpty()) {
-                        Text("В ролях", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.cast), style = MaterialTheme.typography.titleSmall)
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -202,11 +196,11 @@ fun MovieDetailScreen(
                         Spacer(Modifier.height(12.dp))
                     }
                     if (movie.overview.isNotBlank()) {
-                        Text("Описание", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.description), style = MaterialTheme.typography.titleSmall)
                         Text(movie.overview, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(12.dp))
                     }
-                    Text("Ваша оценка", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.your_rating), style = MaterialTheme.typography.titleSmall)
                     Row(
                         modifier = Modifier.padding(vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -243,7 +237,7 @@ fun MovieDetailScreen(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Добавить файл")
+                            Text(stringResource(R.string.add_file))
                         }
                         FilledTonalButton(
                             onClick = { showDeleteConfirmDialog = true },
@@ -252,12 +246,12 @@ fun MovieDetailScreen(
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Удалить фильм")
+                            Text(stringResource(R.string.delete_movie))
                         }
                     }
                     if (!canDeleteMovie) {
                         Text(
-                            "Сначала удалите все файлы фильма",
+                            stringResource(R.string.delete_movie_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.padding(top = 4.dp)
@@ -267,19 +261,19 @@ fun MovieDetailScreen(
                         val fwsToDelete = fileToDelete!!
                         AlertDialog(
                             onDismissRequest = { fileToDelete = null },
-                            title = { Text("Удалить файл?") },
-                            text = { Text("Файл \"${fwsToDelete.file.name}\" будет удалён из коллекции.") },
+                            title = { Text(stringResource(R.string.delete_file_title)) },
+                            text = { Text(stringResource(R.string.delete_file_text, fwsToDelete.file.name)) },
                             confirmButton = {
                                 TextButton(onClick = {
                                     viewModel.removeFile(fwsToDelete.file.id)
                                     fileToDelete = null
                                 }) {
-                                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { fileToDelete = null }) {
-                                    Text("Отмена")
+                                    Text(stringResource(R.string.cancel))
                                 }
                             }
                         )
@@ -287,19 +281,19 @@ fun MovieDetailScreen(
                     if (showDeleteConfirmDialog) {
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirmDialog = false },
-                            title = { Text("Удалить фильм?") },
-                            text = { Text("${if (movie.mediaType == "tv") "Сериал" else "Фильм"} \"${movie.title}\" будет удалён из коллекции. Это действие нельзя отменить.") },
+                            title = { Text(stringResource(R.string.delete_movie_title)) },
+                            text = { Text(if (movie.mediaType == "tv") stringResource(R.string.delete_movie_text_tv, movie.title) else stringResource(R.string.delete_movie_text_movie, movie.title)) },
                             confirmButton = {
                                 TextButton(onClick = {
                                     viewModel.removeMovie(movie.id)
                                     showDeleteConfirmDialog = false
                                 }) {
-                                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showDeleteConfirmDialog = false }) {
-                                    Text("Отмена")
+                                    Text(stringResource(R.string.cancel))
                                 }
                             }
                         )
@@ -343,13 +337,13 @@ fun MovieDetailScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(fws.file.name, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    "${formatSize(fws.file.size)} • ${if (fws.storageNames.isEmpty()) "—" else fws.storageNames.joinToString(", ")}",
+                                    "${formatFileSize(fws.file.size)} • ${if (fws.storageNames.isEmpty()) "—" else fws.storageNames.joinToString(", ")}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 )
                             }
                             IconButton(onClick = { fileToDelete = fws }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                             }
                         }
                     }
@@ -364,20 +358,20 @@ fun MovieDetailScreen(
                         val cat = categoryToUnlink!!
                         AlertDialog(
                             onDismissRequest = { categoryToUnlink = null },
-                            title = { Text("Отвязать категорию?") },
-                            text = { Text("Категория «${cat.name}» будет отвязана от этого фильма.") },
+                            title = { Text(stringResource(R.string.unlink_category_title)) },
+                            text = { Text(stringResource(R.string.unlink_category_text, cat.name)) },
                             confirmButton = {
                                 TextButton(onClick = {
                                     val newIds = movieCategories.map { it.id }.filter { it != cat.id }
                                     viewModel.setMovieCategories(movie.id, newIds)
                                     categoryToUnlink = null
                                 }) {
-                                    Text("Отвязать", color = MaterialTheme.colorScheme.error)
+                                    Text(stringResource(R.string.unlink), color = MaterialTheme.colorScheme.error)
                                 }
                             },
                             dismissButton = {
-                                TextButton(onClick = { categoryToUnlink = null }) {
-                                    Text("Отмена")
+                                TextButton(onClick = { categoryToUnlink = null                                 }) {
+                                    Text(stringResource(R.string.cancel))
                                 }
                             }
                         )
@@ -388,7 +382,7 @@ fun MovieDetailScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Добавить категорию")
+                        Text(stringResource(R.string.add_category_title))
                     }
                     movieCategories.forEach { category ->
                         Row(
@@ -411,7 +405,7 @@ fun MovieDetailScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Delete,
-                                    contentDescription = "Отвязать категорию",
+                                    contentDescription = stringResource(R.string.unlink_category),
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -419,7 +413,7 @@ fun MovieDetailScreen(
                     }
                     if (movieCategories.isEmpty()) {
                         Text(
-                            "Нет привязанных категорий. Нажмите «Добавить категорию».",
+                            stringResource(R.string.no_categories_linked),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.padding(top = 16.dp)
@@ -472,24 +466,24 @@ private fun FileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEdit) "Редактировать файл" else "Добавить файл") },
+        title = { Text(if (isEdit) stringResource(R.string.edit_file_title) else stringResource(R.string.add_file_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Имя файла") },
+                    label = { Text(stringResource(R.string.label_file_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = sizeText,
                     onValueChange = { sizeText = it.filter { c -> c.isDigit() } },
-                    label = { Text("Размер (байты)") },
+                    label = { Text(stringResource(R.string.label_file_size)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (storages.isNotEmpty()) {
-                    Text("Хранилища:", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 16.dp))
+                    Text(stringResource(R.string.storages_label), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 16.dp))
                     storages.forEach { storage ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -509,7 +503,7 @@ private fun FileDialog(
                         }
                     }
                 } else {
-                    Text("Нет хранилищ. Добавьте в Хранилище.", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.no_storages_hint), style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -525,12 +519,12 @@ private fun FileDialog(
                     }
                 }
             ) {
-                Text(if (isEdit) "Сохранить" else "Добавить")
+                Text(if (isEdit) stringResource(R.string.save) else stringResource(R.string.add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -556,13 +550,13 @@ private fun AddCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Добавить категорию") },
+        title = { Text(stringResource(R.string.add_category_title)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Поиск") },
+                    label = { Text(stringResource(R.string.search)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -575,7 +569,7 @@ private fun AddCategoryDialog(
                     OutlinedTextField(
                         value = newCategoryName,
                         onValueChange = { newCategoryName = it },
-                        label = { Text("Новая категория") },
+                        label = { Text(stringResource(R.string.new_category)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -587,15 +581,15 @@ private fun AddCategoryDialog(
                         },
                         enabled = newCategoryName.isNotBlank()
                     ) {
-                        Text("Создать и добавить")
+                        Text(stringResource(R.string.create_and_add))
                     }
                 }
                 Spacer(Modifier.height(16.dp))
-                Text("Выберите категорию:", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.select_category), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(8.dp))
                 if (availableCategories.isEmpty()) {
                     Text(
-                        if (searchQuery.isNotBlank()) "Ничего не найдено" else "Нет доступных категорий",
+                        if (searchQuery.isNotBlank()) stringResource(R.string.no_categories_found) else stringResource(R.string.no_available_categories),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -621,7 +615,7 @@ private fun AddCategoryDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Закрыть")
+                Text(stringResource(R.string.close))
             }
         }
     )

@@ -34,20 +34,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.ui.LibraryFilter
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.MovieCard
 
-private val filterLabels = mapOf(
-    LibraryFilter.ALL to "Все фильмы",
-    LibraryFilter.BY_TITLE to "По названию",
-    LibraryFilter.BY_GENRE to "По жанру",
-    LibraryFilter.BY_TMDB_RATING to "По рейтингу TMDb",
-    LibraryFilter.BY_PERSONAL_RATING to "По моей оценке",
-    LibraryFilter.BY_STORAGE to "По хранилищу"
-)
+private fun getLibraryFilterLabelRes(filter: LibraryFilter): Int = when (filter) {
+    LibraryFilter.ALL -> R.string.filter_all
+    LibraryFilter.BY_TITLE -> R.string.filter_by_title
+    LibraryFilter.BY_GENRE -> R.string.filter_by_genre
+    LibraryFilter.BY_TMDB_RATING -> R.string.filter_by_tmdb_rating
+    LibraryFilter.BY_PERSONAL_RATING -> R.string.filter_by_personal_rating
+    LibraryFilter.BY_STORAGE -> R.string.filter_by_storage
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,16 +72,16 @@ fun LibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Моя коллекция${if (hasFilter) " *" else ""}") },
+                title = { Text(stringResource(R.string.library_title) + if (hasFilter) " *" else "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { filterMenuExpanded = true }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Фильтр коллекции")
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.library_filter))
                         }
                         DropdownMenu(
                             expanded = filterMenuExpanded,
@@ -87,7 +89,7 @@ fun LibraryScreen(
                         ) {
                             LibraryFilter.entries.forEach { filter ->
                                 DropdownMenuItem(
-                                    text = { Text(filterLabels[filter] ?: filter.name) },
+                                    text = { Text(stringResource(getLibraryFilterLabelRes(filter))) },
                                     onClick = {
                                         viewModel.setLibraryFilter(filter)
                                         filterMenuExpanded = false
@@ -112,7 +114,7 @@ fun LibraryScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.library_add))
             }
         }
     ) { padding ->
@@ -134,21 +136,21 @@ fun LibraryScreen(
                             onValueChange = { viewModel.setFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Название фильма") }
+                            placeholder = { Text(stringResource(R.string.placeholder_movie_title)) }
                         )
                         LibraryFilter.BY_GENRE -> OutlinedTextField(
                             value = filterQuery,
                             onValueChange = { viewModel.setFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Жанр") }
+                            placeholder = { Text(stringResource(R.string.placeholder_genre)) }
                         )
                         LibraryFilter.BY_TMDB_RATING -> OutlinedTextField(
                             value = filterTmdbMinRating?.toString() ?: "",
                             onValueChange = { viewModel.setFilterTmdbMinRating(it.toDoubleOrNull()) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Мин. рейтинг (0-10)") }
+                            placeholder = { Text(stringResource(R.string.placeholder_min_rating)) }
                         )
                         LibraryFilter.BY_PERSONAL_RATING -> Row(
                             modifier = Modifier
@@ -172,7 +174,7 @@ fun LibraryScreen(
                             onValueChange = { viewModel.setFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Название хранилища") }
+                            placeholder = { Text(stringResource(R.string.placeholder_storage_name)) }
                         )
                         else -> {}
                     }
@@ -191,8 +193,8 @@ fun LibraryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Коллекция пуста")
-                            Text("Нажмите + чтобы добавить фильм", modifier = Modifier.padding(top = 8.dp))
+                            Text(stringResource(R.string.library_empty))
+                            Text(stringResource(R.string.library_add_hint), modifier = Modifier.padding(top = 8.dp))
                         }
                     }
                     else -> {

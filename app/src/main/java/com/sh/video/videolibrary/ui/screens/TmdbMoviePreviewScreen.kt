@@ -26,6 +26,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import com.sh.video.videolibrary.R
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
@@ -60,7 +62,7 @@ fun TmdbMoviePreviewScreen(
                 title = { Text(movie.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -95,11 +97,11 @@ fun TmdbMoviePreviewScreen(
             }
             Spacer(Modifier.height(16.dp))
             movie.genres?.takeIf { it.isNotEmpty() }?.let { genres ->
-                Text("Жанры: ${genres.joinToString { it.name }}", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.genres_label, genres.joinToString { it.name }), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
             }
             movie.overview?.takeIf { it.isNotBlank() }?.let { overview ->
-                Text("Описание", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.description), style = MaterialTheme.typography.titleSmall)
                 Text(overview, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(16.dp))
             }
@@ -115,7 +117,7 @@ fun TmdbMoviePreviewScreen(
                 onClick = { viewModel.addMovie(movie) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (movie.mediaType == "tv") "Добавить сериал в коллекцию" else "Добавить в коллекцию")
+                Text(if (movie.mediaType == "tv") stringResource(R.string.add_tv_to_collection) else stringResource(R.string.add_to_collection))
             }
         }
     }

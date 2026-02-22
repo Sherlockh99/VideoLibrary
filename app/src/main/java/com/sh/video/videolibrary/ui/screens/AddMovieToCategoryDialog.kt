@@ -31,6 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import com.sh.video.videolibrary.R
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.CategoryEntity
@@ -69,12 +71,12 @@ fun AddMovieToCategoryDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Добавить фильм в «${category.name}»",
+                stringResource(R.string.add_movie_to_category_name, category.name),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                "Из коллекции",
+                stringResource(R.string.from_collection),
                 style = MaterialTheme.typography.labelMedium
             )
             OutlinedTextField(
@@ -82,12 +84,12 @@ fun AddMovieToCategoryDialog(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Поиск по названию") }
+                placeholder = { Text(stringResource(R.string.search_by_title)) }
             )
             if (filteredLibrary.isEmpty()) {
                 Text(
-                    if (library.all { m -> m.id in linkedMovieIds }) "Все фильмы уже в этой категории"
-                    else "Нет фильмов по запросу",
+                    if (library.all { m -> m.id in linkedMovieIds }) stringResource(R.string.all_movies_in_category)
+                    else stringResource(R.string.no_movies_for_query),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

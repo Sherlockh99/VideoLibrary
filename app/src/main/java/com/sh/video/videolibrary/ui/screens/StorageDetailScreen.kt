@@ -46,30 +46,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.StorageFileFilter
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
+import com.sh.video.videolibrary.ui.components.formatFileSize
 
-private val storageFileFilterLabels = mapOf(
-    StorageFileFilter.ALL to "Все файлы",
-    StorageFileFilter.BY_MOVIE_TITLE to "По названию",
-    StorageFileFilter.BY_GENRE to "По жанру",
-    StorageFileFilter.BY_TMDB_RATING to "По рейтингу TMDb",
-    StorageFileFilter.BY_PERSONAL_RATING to "По моей оценке",
-    StorageFileFilter.BY_FILE_NAME to "По имени файла"
-)
-
-private fun formatSize(size: Long): String {
-    return when {
-        size >= 1_000_000_000 -> "%.1f ГБ".format(size / 1_000_000_000.0)
-        size >= 1_000_000 -> "%.1f МБ".format(size / 1_000_000.0)
-        size >= 1_000 -> "%.1f КБ".format(size / 1_000.0)
-        else -> "$size Б"
-    }
+private fun getStorageFileFilterLabelRes(filter: StorageFileFilter): Int = when (filter) {
+    StorageFileFilter.ALL -> R.string.storage_filter_all
+    StorageFileFilter.BY_MOVIE_TITLE -> R.string.storage_filter_by_title
+    StorageFileFilter.BY_GENRE -> R.string.storage_filter_by_genre
+    StorageFileFilter.BY_TMDB_RATING -> R.string.storage_filter_by_tmdb
+    StorageFileFilter.BY_PERSONAL_RATING -> R.string.storage_filter_by_personal
+    StorageFileFilter.BY_FILE_NAME -> R.string.storage_filter_by_filename
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,24 +92,21 @@ fun StorageDetailScreen(
         val row = fileToDelete!!
         AlertDialog(
             onDismissRequest = { fileToDelete = null },
-            title = { Text("Удалить файл с хранилища?") },
+            title = { Text(stringResource(R.string.delete_file_from_storage_title)) },
             text = {
-                Text(
-                    "Файл «${row.fileName}» будет откреплён от хранилища «${storage.name}». " +
-                            "Файл останется в карточке фильма «${row.movieTitle}»."
-                )
+                Text(stringResource(R.string.delete_file_from_storage_text, row.fileName, storage.name, row.movieTitle))
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.removeFileFromStorage(row.fileId, storage.id)
                     fileToDelete = null
                 }) {
-                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { fileToDelete = null }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -127,13 +118,13 @@ fun StorageDetailScreen(
                 title = { Text("${storage.name}${if (hasFilter) " *" else ""}") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { filterMenuExpanded = true }) {
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Фильтр")
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.filter))
                         }
                         DropdownMenu(
                             expanded = filterMenuExpanded,
@@ -141,7 +132,7 @@ fun StorageDetailScreen(
                         ) {
                             StorageFileFilter.entries.forEach { filter ->
                                 DropdownMenuItem(
-                                    text = { Text(storageFileFilterLabels[filter] ?: filter.name) },
+                                    text = { Text(stringResource(getStorageFileFilterLabelRes(filter))) },
                                     onClick = {
                                         viewModel.setStorageFileFilter(filter)
                                         filterMenuExpanded = false
@@ -155,7 +146,7 @@ fun StorageDetailScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddFileDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить файл")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_file))
             }
         }
     ) { padding ->
@@ -177,21 +168,21 @@ fun StorageDetailScreen(
                             onValueChange = { viewModel.setStorageFileFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Название фильма") }
+                            placeholder = { Text(stringResource(R.string.placeholder_movie_title)) }
                         )
                         StorageFileFilter.BY_GENRE -> OutlinedTextField(
                             value = storageFileFilterQuery,
                             onValueChange = { viewModel.setStorageFileFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Жанр") }
+                            placeholder = { Text(stringResource(R.string.placeholder_genre)) }
                         )
                         StorageFileFilter.BY_TMDB_RATING -> OutlinedTextField(
                             value = storageFileFilterTmdbMinRating?.toString() ?: "",
                             onValueChange = { viewModel.setStorageFileFilterTmdbMinRating(it.toDoubleOrNull()) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Мин. рейтинг (0-10)") }
+                            placeholder = { Text(stringResource(R.string.placeholder_min_rating)) }
                         )
                         StorageFileFilter.BY_PERSONAL_RATING -> Row(
                             modifier = Modifier
@@ -215,7 +206,7 @@ fun StorageDetailScreen(
                             onValueChange = { viewModel.setStorageFileFilterQuery(it) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("Имя файла") }
+                            placeholder = { Text(stringResource(R.string.label_file_name)) }
                         )
                         else -> {}
                     }
@@ -230,7 +221,7 @@ fun StorageDetailScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        if (hasFilter) "Нет файлов по заданному фильтру" else "Нет файлов на этом хранилище"
+                        if (hasFilter) stringResource(R.string.storage_no_files_filter) else stringResource(R.string.storage_no_files)
                     )
                 }
             } else {
@@ -305,7 +296,7 @@ fun StorageDetailScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = formatSize(row.fileSize),
+                                        text = formatFileSize(row.fileSize),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -313,7 +304,7 @@ fun StorageDetailScreen(
                                 IconButton(onClick = { fileToDelete = row }) {
                                     Icon(
                                         Icons.Default.Delete,
-                                        contentDescription = "Удалить с хранилища",
+                                        contentDescription = stringResource(R.string.remove_from_storage),
                                         tint = MaterialTheme.colorScheme.onSurface
                                     )
                                 }

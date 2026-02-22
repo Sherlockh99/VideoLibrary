@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import com.sh.video.videolibrary.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -34,10 +36,10 @@ fun AboutScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("О приложении") },
+                title = { Text(stringResource(R.string.about_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -53,12 +55,12 @@ fun AboutScreen(onBack: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Video Library",
+                text = stringResource(R.string.home_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Версия 1.0",
+                text = stringResource(R.string.about_version),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.padding(top = 4.dp)
@@ -67,14 +69,14 @@ fun AboutScreen(onBack: () -> Unit) {
 
             AsyncImage(
                 model = TMDB_LOGO_URL,
-                contentDescription = "TMDb Logo",
+                contentDescription = stringResource(R.string.tmdb_logo),
                 modifier = Modifier
                     .size(80.dp),
                 contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "This product uses the TMDb API but is not endorsed or certified by TMDb.",
+                text = stringResource(R.string.tmdb_attribution),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,

@@ -1,8 +1,10 @@
 package com.sh.video.videolibrary
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import com.sh.video.videolibrary.util.LocaleHelper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -41,6 +43,10 @@ import com.sh.video.videolibrary.ui.screens.StoragesScreen
 import com.sh.video.videolibrary.ui.theme.VideoLibraryTheme
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.wrapContext(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -201,7 +207,8 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onExportClick = { exportLauncher.launch("videolibrary_export.vlp") },
                                 onImportClick = { importLauncher.launch(arrayOf("*/*")) },
-                                onAboutClick = { navController.navigate("about") }
+                                onAboutClick = { navController.navigate("about") },
+                                onLanguageChange = { recreate() }
                             )
                         }
                         composable("search") {

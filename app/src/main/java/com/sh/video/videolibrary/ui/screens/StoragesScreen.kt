@@ -33,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.ui.MainViewModel
 
@@ -55,12 +57,12 @@ fun StoragesScreen(
         var newName by remember(item) { mutableStateOf(item.storage.name) }
         AlertDialog(
             onDismissRequest = { storageToEdit = null },
-            title = { Text("Переименовать хранилище") },
+            title = { Text(stringResource(R.string.edit_storage_title)) },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Название хранилища") },
+                    label = { Text(stringResource(R.string.label_storage_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -75,12 +77,12 @@ fun StoragesScreen(
                     },
                     enabled = newName.isNotBlank() && newName.trim() != item.storage.name
                 ) {
-                    Text("Сохранить")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { storageToEdit = null }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -95,12 +97,12 @@ fun StoragesScreen(
                 storageToDelete = null
                 viewModel.clearStorageRemoveError()
             },
-            title = { Text("Удалить хранилище?") },
+            title = { Text(stringResource(R.string.delete_storage_title)) },
             text = {
                 if (canDelete) {
-                    Text("Хранилище \"${storage.name}\" будет удалено.")
+                    Text(stringResource(R.string.delete_storage_confirm, storage.name))
                 } else {
-                    Text("Нельзя удалить: к хранилищу \"${storage.name}\" привязаны файлы (${item.fileCount}). Сначала удалите привязки файлов в карточках фильмов.")
+                    Text(stringResource(R.string.delete_storage_has_files, storage.name, item.fileCount))
                 }
             },
             confirmButton = {
@@ -109,7 +111,7 @@ fun StoragesScreen(
                         viewModel.removeStorage(storage.id)
                         storageToDelete = null
                     }) {
-                        Text("Удалить", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -118,7 +120,7 @@ fun StoragesScreen(
                     storageToDelete = null
                     viewModel.clearStorageRemoveError()
                 }) {
-                    Text(if (canDelete) "Отмена" else "Понятно")
+                    Text(if (canDelete) stringResource(R.string.cancel) else stringResource(R.string.got_it))
                 }
             }
         )
@@ -128,12 +130,12 @@ fun StoragesScreen(
         var newName by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showAddStorageDialog = false },
-            title = { Text("Добавить хранилище") },
+            title = { Text(stringResource(R.string.add_storage_title)) },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Название хранилища") },
+                    label = { Text(stringResource(R.string.label_storage_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -148,12 +150,12 @@ fun StoragesScreen(
                     },
                     enabled = newName.isNotBlank()
                 ) {
-                    Text("Добавить")
+                    Text(stringResource(R.string.add))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddStorageDialog = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -162,17 +164,17 @@ fun StoragesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Хранилища") },
+                title = { Text(stringResource(R.string.storages_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddStorageDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить хранилище")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.storages_add))
             }
         }
     ) { padding ->
@@ -192,7 +194,7 @@ fun StoragesScreen(
             }
             if (storagesWithCounts.isEmpty()) {
                 Text(
-                    text = "Нет хранилищ. Добавьте первое.",
+                    text = stringResource(R.string.storages_empty),
                     modifier = Modifier.padding(top = 24.dp)
                 )
             } else {
@@ -212,7 +214,7 @@ fun StoragesScreen(
                                 Text(item.storage.name)
                                 if (item.fileCount > 0) {
                                     Text(
-                                        text = "Файлов: ${item.fileCount}",
+                                        text = stringResource(R.string.storages_files_count, item.fileCount),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )
@@ -221,14 +223,14 @@ fun StoragesScreen(
                             IconButton(onClick = { storageToEdit = item }) {
                                 Icon(
                                     Icons.Default.Edit,
-                                    contentDescription = "Изменить название",
+                                    contentDescription = stringResource(R.string.edit_name),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             IconButton(onClick = { storageToDelete = item }) {
                                 Icon(
                                     Icons.Default.Delete,
-                                    contentDescription = "Удалить",
+                                    contentDescription = stringResource(R.string.delete),
                                     tint = if (item.fileCount == 0)
                                         MaterialTheme.colorScheme.onSurface
                                     else

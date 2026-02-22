@@ -42,23 +42,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
-
-private fun formatSize(size: Long): String {
-    return when {
-        size >= 1_000_000_000 -> "%.1f ГБ".format(size / 1_000_000_000.0)
-        size >= 1_000_000 -> "%.1f МБ".format(size / 1_000_000.0)
-        size >= 1_000 -> "%.1f КБ".format(size / 1_000.0)
-        else -> "$size Б"
-    }
-}
+import com.sh.video.videolibrary.ui.components.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +81,9 @@ fun AddFileToStorageDialog(
     val movieFilesForAdd by viewModel.movieFilesForAddDialog.collectAsState()
     val movieAddedSuccess by viewModel.movieAddedSuccess.collectAsState()
     val isSearching = uiState is MainViewModel.UiState.Loading
+    val errSelectMovie = stringResource(R.string.error_select_movie)
+    val errSelectFiles = stringResource(R.string.error_select_files_or_create)
+    val errGeneric = stringResource(R.string.error_generic)
 
     val filteredLibrary = remember(library, collectionSearchQuery) {
         val q = collectionSearchQuery.trim().lowercase()
@@ -158,18 +155,18 @@ fun AddFileToStorageDialog(
                         fileName.trim(), sizeText.toLongOrNull() ?: 0L
                     )
                     else -> {
-                        addError = "Выберите фильм или сериал"
+                        addError = errSelectMovie
                         return@launch
                     }
                 }
                 else -> {
-                    addError = "Выберите файлы или создайте новый"
+                        addError = errSelectFiles
                     return@launch
                 }
             }
             result.fold(
                 onSuccess = { onSuccess(); onDismiss() },
-                onFailure = { addError = it.message ?: "Ошибка" }
+                onFailure = { addError = it.message ?: errGeneric }
             )
         }
     }
@@ -186,7 +183,7 @@ fun AddFileToStorageDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                "Добавить файл в ${storage.name}",
+                stringResource(R.string.add_file_to_storage, storage.name),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -198,12 +195,12 @@ fun AddFileToStorageDialog(
                         selected = sourceTmdb,
                         onClick = { sourceTmdb = true }
                     )
-                    Text("Поиск TMDb")
+                    Text(stringResource(R.string.search_tmdb_option))
                     RadioButton(
                         selected = !sourceTmdb,
                         onClick = { sourceTmdb = false }
                     )
-                    Text("Из коллекции")
+                    Text(stringResource(R.string.from_collection_option))
                 }
 
                 if (sourceTmdb) {
@@ -215,12 +212,12 @@ fun AddFileToStorageDialog(
                         FilterChip(
                             selected = searchMode == MainViewModel.SearchMode.MOVIE,
                             onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.MOVIE) },
-                            label = { Text("Фильмы") }
+                            label = { Text(stringResource(R.string.search_movies)) }
                         )
                         FilterChip(
                             selected = searchMode == MainViewModel.SearchMode.TV,
                             onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.TV) },
-                            label = { Text("Сериалы") }
+                            label = { Text(stringResource(R.string.search_tv)) }
                         )
                         OutlinedTextField(
                             value = searchQuery,
@@ -228,7 +225,7 @@ fun AddFileToStorageDialog(
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             placeholder = {
-                                Text(if (searchMode == MainViewModel.SearchMode.TV) "Название сериала" else "Название фильма")
+                                Text(if (searchMode == MainViewModel.SearchMode.TV) stringResource(R.string.placeholder_tv_title) else stringResource(R.string.placeholder_movie_title))
                             }
                         )
                         Button(
@@ -243,7 +240,7 @@ fun AddFileToStorageDialog(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
-                                Text("Искать")
+                                Text(stringResource(R.string.search_button))
                             }
                         }
                     }
@@ -312,7 +309,7 @@ fun AddFileToStorageDialog(
                                                 modifier = Modifier.padding(4.dp),
                                                 onClick = { viewModel.addMovie(item) }
                                             ) {
-                                                Text("Добавить в коллекцию")
+                                                Text(stringResource(R.string.add_to_collection_btn))
                                             }
                                         }
                                     }
@@ -326,12 +323,12 @@ fun AddFileToStorageDialog(
                         onValueChange = { collectionSearchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("Поиск по названию") }
+                        placeholder = { Text(stringResource(R.string.search_by_title)) }
                     )
                     if (filteredLibrary.isEmpty()) {
                         Text(
-                            if (library.isEmpty()) "Коллекция пуста. Используйте поиск TMDb."
-                            else "Нет фильмов по запросу",
+                            if (library.isEmpty()) stringResource(R.string.collection_empty)
+                            else stringResource(R.string.no_movies_for_query),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -362,7 +359,7 @@ fun AddFileToStorageDialog(
                 val hasMovie = selectedMovie != null || selectedTmdb != null
                 if (hasMovie) {
                     Text(
-                        "Файл",
+                        stringResource(R.string.file_label),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -397,7 +394,7 @@ fun AddFileToStorageDialog(
                                     Column(modifier = Modifier.padding(start = 8.dp)) {
                                         Text(fws.file.name, style = MaterialTheme.typography.bodyMedium)
                                         Text(
-                                            "${formatSize(fws.file.size)} • ${fws.storageNames.joinToString(", ").ifEmpty { "—" }}",
+                                            "${formatFileSize(fws.file.size)} • ${fws.storageNames.joinToString(", ").ifEmpty { "—" }}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -413,21 +410,21 @@ fun AddFileToStorageDialog(
                                 checked = createNewFile,
                                 onCheckedChange = { createNewFile = it; if (it) selectedExistingFileIds = emptySet() }
                             )
-                            Text("Создать новый файл", modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.create_new_file), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                     if (createNewFile || filesNotOnStorage.isEmpty()) {
                         OutlinedTextField(
                             value = fileName,
                             onValueChange = { fileName = it },
-                            label = { Text("Имя файла") },
+                            label = { Text(stringResource(R.string.label_file_name)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = sizeText,
                             onValueChange = { sizeText = it.filter { c -> c.isDigit() } },
-                            label = { Text("Размер (байты)") },
+                            label = { Text(stringResource(R.string.label_file_size)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -447,13 +444,13 @@ fun AddFileToStorageDialog(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
                 TextButton(
                     onClick = { doAdd() },
                     enabled = canAdd()
                 ) {
-                    Text("Добавить")
+                    Text(stringResource(R.string.add))
                 }
             }
         }

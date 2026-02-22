@@ -37,7 +37,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.ui.MainViewModel
@@ -67,14 +69,14 @@ fun CategoryDetailScreen(
                 title = { Text(category.name, maxLines = 2) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { addMenuExpanded = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить фильм")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_movie_to_category))
             }
         }
     ) { padding ->
@@ -89,7 +91,7 @@ fun CategoryDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Добавить фильм в категорию",
+                        stringResource(R.string.add_movie_to_category),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -104,7 +106,7 @@ fun CategoryDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.LibraryAdd, contentDescription = null)
-                        Text("Из коллекции", modifier = Modifier.padding(start = 16.dp))
+                        Text(stringResource(R.string.from_collection), modifier = Modifier.padding(start = 16.dp))
                     }
                     Row(
                         modifier = Modifier
@@ -117,7 +119,7 @@ fun CategoryDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Cloud, contentDescription = null)
-                        Text("С TMDb", modifier = Modifier.padding(start = 16.dp))
+                        Text(stringResource(R.string.from_tmdb), modifier = Modifier.padding(start = 16.dp))
                     }
                 }
             }
@@ -126,19 +128,19 @@ fun CategoryDetailScreen(
             val movie = movieToUnlink!!
             AlertDialog(
                 onDismissRequest = { movieToUnlink = null },
-                title = { Text("Отвязать фильм от категории?") },
-                text = { Text("Фильм «${movie.title}» будет отвязан от категории «${category.name}».") },
+                title = { Text(stringResource(R.string.unlink_movie_from_category_title)) },
+                text = { Text(stringResource(R.string.unlink_movie_from_category_text, movie.title, category.name)) },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.removeMovieFromCategory(movie.id, category.id)
                         movieToUnlink = null
                     }) {
-                        Text("Отвязать", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.unlink), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { movieToUnlink = null }) {
-                        Text("Отмена")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -193,7 +195,7 @@ fun CategoryDetailScreen(
                         ) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Отвязать от категории",
+                                    contentDescription = stringResource(R.string.unlink_from_category),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }

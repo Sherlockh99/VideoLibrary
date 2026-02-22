@@ -29,7 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 
 @Composable
 fun HomeScreen(
@@ -54,12 +56,12 @@ fun HomeScreen(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
         Text(
-            text = "Video Library",
+            text = stringResource(R.string.home_title),
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "Ваша видеобиблиотека",
+            text = stringResource(R.string.home_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 4.dp)
@@ -67,36 +69,36 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         HomeLinkCard(
-            title = "Моя коллекция",
-            subtitle = "Фильмы, добавленные с TMDb",
+            title = stringResource(R.string.home_collection),
+            subtitle = stringResource(R.string.home_collection_subtitle),
             icon = Icons.Default.LocalMovies,
             onClick = onCollectionClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = "Хранилище",
-            subtitle = "Диски и места хранения файлов",
+            title = stringResource(R.string.home_storage),
+            subtitle = stringResource(R.string.home_storage_subtitle),
             icon = Icons.Default.Folder,
             onClick = onStoragesClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = "Категории",
-            subtitle = "Характеристики и метки для фильмов",
+            title = stringResource(R.string.home_categories),
+            subtitle = stringResource(R.string.home_categories_subtitle),
             icon = Icons.Default.Category,
             onClick = onCategoriesClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = "Настройки",
-            subtitle = "Импорт и экспорт .vlp",
+            title = stringResource(R.string.home_settings),
+            subtitle = stringResource(R.string.home_settings_subtitle),
             icon = Icons.Default.Settings,
             onClick = onSettingsClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = "Актеры",
-            subtitle = "Актеры из вашей коллекции",
+            title = stringResource(R.string.home_actors),
+            subtitle = stringResource(R.string.home_actors_subtitle),
             icon = Icons.Default.Person,
             onClick = onActorsClick
         )

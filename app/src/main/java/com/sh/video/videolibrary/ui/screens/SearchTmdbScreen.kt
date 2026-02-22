@@ -34,6 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import com.sh.video.videolibrary.R
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
@@ -77,12 +79,12 @@ fun SearchTmdbScreen(
                 FilterChip(
                     selected = searchMode == MainViewModel.SearchMode.MOVIE,
                     onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.MOVIE) },
-                    label = { Text("Фильмы") }
+                    label = { Text(stringResource(R.string.search_movies)) }
                 )
                 FilterChip(
                     selected = searchMode == MainViewModel.SearchMode.TV,
                     onClick = { viewModel.setSearchMode(MainViewModel.SearchMode.TV) },
-                    label = { Text("Сериалы") }
+                    label = { Text(stringResource(R.string.search_tv)) }
                 )
             }
             OutlinedTextField(
@@ -92,7 +94,7 @@ fun SearchTmdbScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = {
-                    Text(if (searchMode == MainViewModel.SearchMode.TV) "Название сериала" else "Название фильма")
+                    Text(if (searchMode == MainViewModel.SearchMode.TV) stringResource(R.string.placeholder_tv_title) else stringResource(R.string.placeholder_movie_title))
                 },
                 singleLine = true,
                 enabled = !isSearching,
@@ -108,7 +110,7 @@ fun SearchTmdbScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
-                            Text("Искать")
+                            Text(stringResource(R.string.search_button))
                         }
                     }
                 }
@@ -153,7 +155,7 @@ private fun TmdbSearchResultCard(
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(item.title, style = MaterialTheme.typography.titleMedium)
                 if (item.mediaType == "tv") {
-                    Text("Сериал", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.tv_label), style = MaterialTheme.typography.labelSmall)
                 }
                 item.releaseDate?.take(4)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 Text("★ ${item.voteAverage ?: 0}", style = MaterialTheme.typography.bodySmall)

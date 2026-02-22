@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import com.sh.video.videolibrary.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -54,7 +56,7 @@ fun MovieCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = movie.title + if (movie.mediaType == "tv") " · Сериал" else "",
+                    text = movie.title + if (movie.mediaType == "tv") stringResource(R.string.movie_tv_label) else "",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2
                 )
@@ -75,7 +77,7 @@ fun MovieCard(
                 }
                 if (topActorNames.isNotEmpty()) {
                     Text(
-                        text = "В ролях: ${topActorNames.joinToString(", ")}",
+                        text = stringResource(R.string.cast_format, topActorNames.joinToString(", ")),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

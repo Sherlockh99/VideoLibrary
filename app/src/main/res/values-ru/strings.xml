@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Video Library</string>
+
+    <!-- Home -->
+    <string name="home_title">Video Library</string>
+    <string name="home_subtitle">Ваша видеобиблиотека</string>
+    <string name="home_collection">Моя коллекция</string>
+    <string name="home_collection_subtitle">Фильмы, добавленные с TMDb</string>
+    <string name="home_storage">Хранилище</string>
+    <string name="home_storage_subtitle">Диски и места хранения файлов</string>
+    <string name="home_categories">Категории</string>
+    <string name="home_categories_subtitle">Характеристики и метки для фильмов</string>
+    <string name="home_settings">Настройки</string>
+    <string name="home_settings_subtitle">Импорт и экспорт .vlp</string>
+    <string name="home_actors">Актеры</string>
+    <string name="home_actors_subtitle">Актеры из вашей коллекции</string>
+
+    <!-- Common -->
+    <string name="back">Назад</string>
+    <string name="add">Добавить</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="close">Закрыть</string>
+    <string name="search">Поиск</string>
+    <string name="filter">Фильтр</string>
+    <string name="loading">Загрузка…</string>
+    <string name="error_prefix">Ошибка: %s</string>
+
+    <!-- Library -->
+    <string name="library_title">Моя коллекция</string>
+    <string name="library_filter">Фильтр коллекции</string>
+    <string name="library_add">Добавить</string>
+    <string name="library_empty">Коллекция пуста</string>
+    <string name="library_add_hint">Нажмите + чтобы добавить фильм</string>
+    <string name="filter_all">Все фильмы</string>
+    <string name="filter_by_title">По названию</string>
+    <string name="filter_by_genre">По жанру</string>
+    <string name="filter_by_tmdb_rating">По рейтингу TMDb</string>
+    <string name="filter_by_personal_rating">По моей оценке</string>
+    <string name="filter_by_storage">По хранилищу</string>
+    <string name="placeholder_movie_title">Название фильма</string>
+    <string name="placeholder_genre">Жанр</string>
+    <string name="placeholder_min_rating">Мин. рейтинг (0–10)</string>
+    <string name="placeholder_storage_name">Название хранилища</string>
+
+    <!-- Storage filters -->
+    <string name="storage_filter_all">Все файлы</string>
+    <string name="storage_filter_by_title">По названию</string>
+    <string name="storage_filter_by_genre">По жанру</string>
+    <string name="storage_filter_by_tmdb">По рейтингу TMDb</string>
+    <string name="storage_filter_by_personal">По моей оценке</string>
+    <string name="storage_filter_by_filename">По имени файла</string>
+
+    <!-- Storages -->
+    <string name="storages_title">Хранилища</string>
+    <string name="storages_add">Добавить хранилище</string>
+    <string name="storages_empty">Нет хранилищ. Добавьте первое.</string>
+    <string name="storages_files_count">Файлов: %d</string>
+    <string name="edit_storage_title">Переименовать хранилище</string>
+    <string name="delete_storage_title">Удалить хранилище?</string>
+    <string name="delete_storage_confirm">Хранилище \"%s\" будет удалено.</string>
+    <string name="delete_storage_has_files">Нельзя удалить: к хранилищу \"%s\" привязаны файлы (%d). Сначала удалите привязки файлов в карточках фильмов.</string>
+    <string name="add_storage_title">Добавить хранилище</string>
+    <string name="label_storage_name">Название хранилища</string>
+    <string name="edit_name">Изменить название</string>
+    <string name="got_it">Понятно</string>
+    <string name="remove_from_storage">Удалить с хранилища</string>
+    <string name="delete_file_from_storage_title">Удалить файл с хранилища?</string>
+    <string name="delete_file_from_storage_text">Файл \"%s\" будет откреплён от хранилища \"%s\". Файл останется в карточке фильма \"%s\".</string>
+    <string name="storage_no_files_filter">Нет файлов по заданному фильтру</string>
+    <string name="storage_no_files">Нет файлов на этом хранилище</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Категории</string>
+    <string name="categories_add">Добавить категорию</string>
+    <string name="categories_empty">Нет категорий. Добавьте первую.</string>
+    <string name="categories_movies_count">Фильмов: %d</string>
+    <string name="edit_category_title">Переименовать категорию</string>
+    <string name="delete_category_title">Удалить категорию?</string>
+    <string name="delete_category_confirm">Категория \"%s\" будет удалена.</string>
+    <string name="delete_category_has_movies">Нельзя удалить: к категории \"%s\" привязаны фильмы (%d). Сначала отвяжите их в карточках фильмов.</string>
+    <string name="add_category_title">Добавить категорию</string>
+    <string name="label_category_name">Название категории</string>
+    <string name="new_category">Новая категория</string>
+    <string name="create_and_add">Создать и добавить</string>
+    <string name="select_category">Выберите категорию:</string>
+    <string name="no_categories_found">Ничего не найдено</string>
+    <string name="no_available_categories">Нет доступных категорий</string>
+    <string name="error_category_has_movies">Нельзя удалить: к категории привязаны фильмы</string>
+    <string name="error_storage_has_files">Нельзя удалить: к хранилищу привязаны файлы</string>
+
+    <!-- Actors -->
+    <string name="actors_title">Актеры</string>
+    <string name="actors_refresh_names">Обновить имена на русский</string>
+    <string name="actors_updated">Обновлено имён: %d</string>
+    <string name="actors_empty">Нет актеров в базе</string>
+    <string name="actors_empty_hint">Добавьте фильмы или сериалы из TMDb — актеры загрузятся автоматически</string>
+    <string name="actors_search_placeholder">Поиск актёра</string>
+    <string name="actors_nothing_found">Ничего не найдено</string>
+    <string name="actors_movies_count">Фильмов: %d</string>
+    <string name="actors_refreshing">Обновление имён…</string>
+    <string name="add_from_tmdb">Добавить из TMDb</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_subtitle">Язык интерфейса приложения</string>
+    <string name="language_system">По умолчанию (система)</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_english">English</string>
+    <string name="settings_export">Экспорт в .vlp</string>
+    <string name="settings_export_subtitle">Сохранить коллекцию в файл</string>
+    <string name="settings_import">Импорт из .vlp</string>
+    <string name="settings_import_subtitle">Загрузить коллекцию из файла</string>
+    <string name="settings_refresh_actors">Обновить актёров</string>
+    <string name="settings_refresh_actors_subtitle">Загрузить актёров с TMDb для всей коллекции</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_about_subtitle">Информация и атрибуция TMDb</string>
+    <string name="exported_count">Экспортировано фильмов: %d</string>
+    <string name="actors_refreshed_count">Обновлено фильмов: %d</string>
+    <string name="import_result">Добавлено: %d, пропущено: %d</string>
+
+    <!-- Movie detail -->
+    <string name="movie_tv_suffix"> (сериал)</string>
+    <string name="movie_about_tab">О фильме</string>
+    <string name="movie_files_tab">Файлы</string>
+    <string name="movie_categories_tab">Категории</string>
+    <string name="cast">В ролях</string>
+    <string name="description">Описание</string>
+    <string name="your_rating">Ваша оценка</string>
+    <string name="genres_label">Жанры: %s</string>
+    <string name="add_file">Добавить файл</string>
+    <string name="delete_movie">Удалить фильм</string>
+    <string name="delete_movie_hint">Сначала удалите все файлы фильма</string>
+    <string name="delete_file_title">Удалить файл?</string>
+    <string name="delete_file_text">Файл \"%s\" будет удалён из коллекции.</string>
+    <string name="delete_movie_title">Удалить фильм?</string>
+    <string name="delete_movie_text_movie">Фильм \"%s\" будет удалён из коллекции. Это действие нельзя отменить.</string>
+    <string name="delete_movie_text_tv">Сериал \"%s\" будет удалён из коллекции. Это действие нельзя отменить.</string>
+    <string name="unlink_category_title">Отвязать категорию?</string>
+    <string name="unlink_category_text">Категория «%s» будет отвязана от этого фильма.</string>
+    <string name="unlink_category">Отвязать категорию</string>
+    <string name="edit_file_title">Редактировать файл</string>
+    <string name="add_file_title">Добавить файл</string>
+    <string name="label_file_name">Имя файла</string>
+    <string name="label_file_size">Размер (байты)</string>
+    <string name="storages_label">Хранилища:</string>
+    <string name="no_storages_hint">Нет хранилищ. Добавьте в Хранилище.</string>
+    <string name="no_categories_linked">Нет привязанных категорий. Нажмите «Добавить категорию».</string>
+    <string name="unlink_movie_from_category_title">Отвязать фильм от категории?</string>
+    <string name="unlink_movie_from_category_text">Фильм «%s» будет отвязан от категории «%s».</string>
+    <string name="unlink">Отвязать</string>
+    <string name="unlink_from_category">Отвязать от категории</string>
+
+    <!-- Movie card -->
+    <string name="movie_tv_label"> · Сериал</string>
+    <string name="cast_format">В ролях: %s</string>
+
+    <!-- Search TMDb -->
+    <string name="search_tmdb_title">Поиск на TMDb</string>
+    <string name="search_movies">Фильмы</string>
+    <string name="search_tv">Сериалы</string>
+    <string name="placeholder_tv_title">Название сериала</string>
+    <string name="search_button">Искать</string>
+    <string name="tv_label">Сериал</string>
+
+    <!-- TMDb preview -->
+    <string name="add_to_collection">Добавить в коллекцию</string>
+    <string name="add_tv_to_collection">Добавить сериал в коллекцию</string>
+
+    <!-- Add file to storage dialog -->
+    <string name="add_file_to_storage">Добавить файл в %s</string>
+    <string name="search_tmdb_option">Поиск TMDb</string>
+    <string name="from_collection_option">Из коллекции</string>
+    <string name="search_by_title">Поиск по названию</string>
+    <string name="collection_empty">Коллекция пуста. Используйте поиск TMDb.</string>
+    <string name="no_movies_for_query">Нет фильмов по запросу</string>
+    <string name="add_to_collection_btn">Добавить в коллекцию</string>
+    <string name="file_label">Файл</string>
+    <string name="create_new_file">Создать новый файл</string>
+    <string name="error_select_movie">Выберите фильм или сериал</string>
+    <string name="error_select_files_or_create">Выберите файлы или создайте новый</string>
+
+    <!-- Category detail -->
+    <string name="add_movie_to_category">Добавить фильм в категорию</string>
+    <string name="add_movie_to_category_name">Добавить фильм в «%s»</string>
+    <string name="all_movies_in_category">Все фильмы уже в этой категории</string>
+    <string name="from_collection">Из коллекции</string>
+    <string name="from_tmdb">С TMDb</string>
+
+    <!-- Actor detail -->
+    <string name="no_movies_with_actor">Нет фильмов с этим актером в коллекции</string>
+    <string name="add_from_tmdb_hint">Нажмите + чтобы добавить фильм или сериал с TMDb</string>
+
+    <!-- About -->
+    <string name="about_title">О приложении</string>
+    <string name="about_version">Версия 1.0</string>
+    <string name="tmdb_attribution">This product uses the TMDb API but is not endorsed or certified by TMDb.</string>
+    <string name="tmdb_logo">Логотип TMDb</string>
+
+    <!-- Size units -->
+    <string name="size_gb">%.1f ГБ</string>
+    <string name="size_mb">%.1f МБ</string>
+    <string name="size_kb">%.1f КБ</string>
+    <string name="size_bytes">%d Б</string>
+
+    <!-- ViewModel errors -->
+    <string name="error_search">Ошибка поиска</string>
+    <string name="error_generic">Ошибка</string>
+    <string name="error_movie_already_in_collection">Фильм уже в коллекции</string>
+    <string name="error_tv_already_in_collection">Сериал уже в коллекции</string>
+</resources>

@@ -33,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.repository.CategoryWithMovieCount
 import com.sh.video.videolibrary.ui.MainViewModel
 
@@ -55,12 +57,12 @@ fun CategoriesScreen(
         var newName by remember(item) { mutableStateOf(item.category.name) }
         AlertDialog(
             onDismissRequest = { categoryToEdit = null },
-            title = { Text("Переименовать категорию") },
+            title = { Text(stringResource(R.string.edit_category_title)) },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Название категории") },
+                    label = { Text(stringResource(R.string.label_category_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -75,12 +77,12 @@ fun CategoriesScreen(
                     },
                     enabled = newName.isNotBlank() && newName.trim() != item.category.name
                 ) {
-                    Text("Сохранить")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { categoryToEdit = null }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -95,12 +97,12 @@ fun CategoriesScreen(
                 categoryToDelete = null
                 viewModel.clearCategoryRemoveError()
             },
-            title = { Text("Удалить категорию?") },
+            title = { Text(stringResource(R.string.delete_category_title)) },
             text = {
                 if (canDelete) {
-                    Text("Категория \"${category.name}\" будет удалена.")
+                    Text(stringResource(R.string.delete_category_confirm, category.name))
                 } else {
-                    Text("Нельзя удалить: к категории \"${category.name}\" привязаны фильмы (${item.movieCount}). Сначала отвяжите их в карточках фильмов.")
+                    Text(stringResource(R.string.delete_category_has_movies, category.name, item.movieCount))
                 }
             },
             confirmButton = {
@@ -109,7 +111,7 @@ fun CategoriesScreen(
                         viewModel.removeCategory(category.id)
                         categoryToDelete = null
                     }) {
-                        Text("Удалить", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
             },
@@ -118,7 +120,7 @@ fun CategoriesScreen(
                     categoryToDelete = null
                     viewModel.clearCategoryRemoveError()
                 }) {
-                    Text(if (canDelete) "Отмена" else "Понятно")
+                    Text(if (canDelete) stringResource(R.string.cancel) else stringResource(R.string.got_it))
                 }
             }
         )
@@ -128,12 +130,12 @@ fun CategoriesScreen(
         var newName by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showAddCategoryDialog = false },
-            title = { Text("Добавить категорию") },
+            title = { Text(stringResource(R.string.add_category_title)) },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Название категории") },
+                    label = { Text(stringResource(R.string.label_category_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -148,12 +150,12 @@ fun CategoriesScreen(
                     },
                     enabled = newName.isNotBlank()
                 ) {
-                    Text("Добавить")
+                    Text(stringResource(R.string.add))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -162,17 +164,17 @@ fun CategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Категории") },
+                title = { Text(stringResource(R.string.categories_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddCategoryDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить категорию")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.categories_add))
             }
         }
     ) { padding ->
@@ -192,7 +194,7 @@ fun CategoriesScreen(
             }
             if (categoriesWithCounts.isEmpty()) {
                 Text(
-                    text = "Нет категорий. Добавьте первую.",
+                    text = stringResource(R.string.categories_empty),
                     modifier = Modifier.padding(top = 24.dp)
                 )
             } else {
@@ -212,7 +214,7 @@ fun CategoriesScreen(
                                 Text(item.category.name)
                                 if (item.movieCount > 0) {
                                     Text(
-                                        text = "Фильмов: ${item.movieCount}",
+                                        text = stringResource(R.string.categories_movies_count, item.movieCount),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                     )
@@ -221,14 +223,14 @@ fun CategoriesScreen(
                             IconButton(onClick = { categoryToEdit = item }) {
                                 Icon(
                                     Icons.Default.Edit,
-                                    contentDescription = "Изменить название",
+                                    contentDescription = stringResource(R.string.edit_name),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             IconButton(onClick = { categoryToDelete = item }) {
                                 Icon(
                                     Icons.Default.Delete,
-                                    contentDescription = "Удалить",
+                                    contentDescription = stringResource(R.string.delete),
                                     tint = if (item.movieCount == 0)
                                         MaterialTheme.colorScheme.onSurface
                                     else
