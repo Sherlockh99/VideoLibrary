@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import com.sh.video.videolibrary.data.local.GenreEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.MovieCard
+import com.sh.video.videolibrary.util.GenreHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +42,7 @@ fun GenreDetailScreen(
     onMovieClick: (MovieEntity) -> Unit,
     onGenreClick: (Long) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val genreMovies by viewModel.genreMovies.collectAsState()
 
     LaunchedEffect(genre.id) {
@@ -49,7 +52,7 @@ fun GenreDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(genre.name, maxLines = 2) },
+                title = { Text(GenreHelper.getLocalizedName(context, genre), maxLines = 2) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))

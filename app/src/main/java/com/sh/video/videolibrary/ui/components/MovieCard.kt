@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.local.GenreEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
+import com.sh.video.videolibrary.util.GenreHelper
 
 const val TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 const val TMDB_IMAGE_ORIGINAL = "https://image.tmdb.org/t/p/original"
@@ -40,6 +42,7 @@ fun MovieCard(
     genres: List<GenreEntity> = emptyList(),
     onGenreClick: (Long) -> Unit = {}
 ) {
+    val context = LocalContext.current
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -84,7 +87,7 @@ fun MovieCard(
                                 Text(", ", style = MaterialTheme.typography.bodySmall)
                             }
                             Text(
-                                text = genre.name,
+                                text = GenreHelper.getLocalizedName(context, genre),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.clickable { onGenreClick(genre.id) }

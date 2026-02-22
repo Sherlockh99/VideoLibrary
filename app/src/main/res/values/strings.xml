@@ -105,6 +105,34 @@
     <string name="actors_refreshing">Updating names…</string>
     <string name="add_from_tmdb">Add from TMDb</string>
 
+    <!-- TMDb genre names (by ID) - for localization when switching app language -->
+    <string name="genre_28">Action</string>
+    <string name="genre_12">Adventure</string>
+    <string name="genre_16">Animation</string>
+    <string name="genre_35">Comedy</string>
+    <string name="genre_80">Crime</string>
+    <string name="genre_99">Documentary</string>
+    <string name="genre_18">Drama</string>
+    <string name="genre_10751">Family</string>
+    <string name="genre_14">Fantasy</string>
+    <string name="genre_36">Horror</string>
+    <string name="genre_27">Mystery</string>
+    <string name="genre_10402">Music</string>
+    <string name="genre_9648">Romance</string>
+    <string name="genre_10749">Romance</string>
+    <string name="genre_878">Science Fiction</string>
+    <string name="genre_10770">TV Movie</string>
+    <string name="genre_53">Thriller</string>
+    <string name="genre_10752">War</string>
+    <string name="genre_37">Western</string>
+    <string name="genre_10759">Action &amp; Adventure</string>
+    <string name="genre_10765">Sci-Fi &amp; Fantasy</string>
+    <string name="genre_10763">News</string>
+    <string name="genre_10764">Reality</string>
+    <string name="genre_10766">Soap</string>
+    <string name="genre_10767">Talk</string>
+    <string name="genre_10768">War &amp; Politics</string>
+
     <!-- Genres -->
     <string name="genres_title">Genres</string>
     <string name="genres_empty">No genres in database</string>

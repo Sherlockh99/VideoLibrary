@@ -25,12 +25,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.repository.GenreWithMovieCount
+import com.sh.video.videolibrary.util.GenreHelper
 import com.sh.video.videolibrary.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,12 +42,15 @@ fun GenresScreen(
     onBack: () -> Unit,
     onGenreClick: (GenreWithMovieCount) -> Unit
 ) {
+    val context = LocalContext.current
     val genresWithCounts by viewModel.genresWithMovieCounts.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-    val filteredGenres = remember(genresWithCounts, searchQuery) {
+    val filteredGenres = remember(genresWithCounts, searchQuery, context) {
         val q = searchQuery.trim().lowercase()
         if (q.isEmpty()) genresWithCounts
-        else genresWithCounts.filter { it.genre.name.lowercase().contains(q) }
+        else genresWithCounts.filter {
+            GenreHelper.getLocalizedName(context, it.genre).lowercase().contains(q)
+        }
     }
 
     Scaffold(
@@ -119,7 +124,7 @@ fun GenresScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = item.genre.name,
+                                    text = GenreHelper.getLocalizedName(context, item.genre),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(

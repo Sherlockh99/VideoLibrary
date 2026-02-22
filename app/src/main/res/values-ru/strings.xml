@@ -105,6 +105,34 @@
     <string name="actors_refreshing">Обновление имён…</string>
     <string name="add_from_tmdb">Добавить из TMDb</string>
 
+    <!-- TMDb genre names (by ID) - for localization when switching app language -->
+    <string name="genre_28">Боевик</string>
+    <string name="genre_12">Приключения</string>
+    <string name="genre_16">Мультфильм</string>
+    <string name="genre_35">Комедия</string>
+    <string name="genre_80">Криминал</string>
+    <string name="genre_99">Документальный</string>
+    <string name="genre_18">Драма</string>
+    <string name="genre_10751">Семейный</string>
+    <string name="genre_14">Фэнтези</string>
+    <string name="genre_36">Ужасы</string>
+    <string name="genre_27">Детектив</string>
+    <string name="genre_10402">Музыка</string>
+    <string name="genre_9648">Мелодрама</string>
+    <string name="genre_10749">Мелодрама</string>
+    <string name="genre_878">Фантастика</string>
+    <string name="genre_10770">Телефильм</string>
+    <string name="genre_53">Триллер</string>
+    <string name="genre_10752">Военный</string>
+    <string name="genre_37">Вестерн</string>
+    <string name="genre_10759">Боевик и приключения</string>
+    <string name="genre_10765">Научная фантастика и фэнтези</string>
+    <string name="genre_10763">Новости</string>
+    <string name="genre_10764">Реалити-шоу</string>
+    <string name="genre_10766">Мыльная опера</string>
+    <string name="genre_10767">Ток-шоу</string>
+    <string name="genre_10768">Война и политика</string>
+
     <!-- Genres -->
     <string name="genres_title">Жанры</string>
     <string name="genres_empty">Нет жанров в базе</string>

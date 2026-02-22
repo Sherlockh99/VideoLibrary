@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,6 +64,7 @@ import com.sh.video.videolibrary.ui.components.FullScreenImageDialog
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_ORIGINAL
 import com.sh.video.videolibrary.ui.components.formatFileSize
+import com.sh.video.videolibrary.util.GenreHelper
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -74,6 +76,7 @@ fun MovieDetailScreen(
     onGenreClick: (genreId: Long) -> Unit = {},
     onCategoryClick: (categoryId: Long) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val openDetailOnFilesTab by viewModel.openDetailOnFilesTab.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var selectedRating by remember(movie.id) { mutableStateOf(movie.personalRating ?: 0) }
@@ -196,7 +199,7 @@ fun MovieDetailScreen(
                                     Text(", ", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Text(
-                                    text = genre.name,
+                                    text = GenreHelper.getLocalizedName(context, genre),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.clickable { onGenreClick(genre.id) }
