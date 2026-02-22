@@ -1,6 +1,8 @@
 package com.sh.video.videolibrary.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,8 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -32,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
+import com.sh.video.videolibrary.ui.components.FullScreenImageDialog
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
+import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_ORIGINAL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,15 +86,33 @@ fun TmdbMoviePreviewScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Row {
-                AsyncImage(
-                    model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
+            var showFullScreenPoster by remember { mutableStateOf(false) }
+            if (showFullScreenPoster && movie.posterPath != null) {
+                FullScreenImageDialog(
+                    imageUrl = TMDB_IMAGE_ORIGINAL + movie.posterPath,
                     contentDescription = movie.title,
+                    onDismiss = { showFullScreenPoster = false }
+                )
+            }
+            Row {
+                Box(
                     modifier = Modifier
                         .width(120.dp)
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
+                        .height(180.dp)
+                        .then(
+                            if (movie.posterPath != null) Modifier.clickable { showFullScreenPoster = true }
+                            else Modifier
+                        )
+                ) {
+                    AsyncImage(
+                        model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
+                        contentDescription = movie.title,
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(movie.title, style = MaterialTheme.typography.headlineSmall)

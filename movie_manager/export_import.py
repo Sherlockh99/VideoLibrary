@@ -13,14 +13,20 @@ from database import (
     movie_exists,
     get_all_movies,
     get_all_storages,
+    get_all_categories,
     get_movie_by_tmdb_id,
     get_storage_by_name,
+    get_category_by_name,
+    add_category,
     get_files_by_movie_id,
+    get_categories_by_movie_id,
     add_storage,
     add_file,
     add_file_to_storage,
     remove_files_by_movie_id,
     update_movie_from_import,
+    set_movie_categories,
+    set_movie_genres_from_string,
 )
 
 FORMAT_ID = "videolibrary"
@@ -38,6 +44,7 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
 
     movies = get_all_movies()
     storages = get_all_storages()
+    categories = get_all_categories()
 
     data = {
         "format": FORMAT_ID,
@@ -45,6 +52,7 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
         "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "source": source,
         "storages": [{"id": s.id, "name": s.name} for s in storages],
+        "categories": [{"name": c.name} for c in categories],
         "movies": [
             {
                 "tmdb_id": m.tmdb_id,
@@ -57,6 +65,7 @@ def export_to_file(path: Path | str, source: str = "desktop") -> int:
                 "release_date": m.release_date,
                 "poster_path": m.poster_path,
                 "personal_rating": m.personal_rating,
+                "category_names": [c.name for c in get_categories_by_movie_id(m.id)],
                 "files": [
                     {"name": f.name, "size": f.size, "storage_names": [s.name for s in storages]}
                     for f, storages in get_files_by_movie_id(m.id)
@@ -97,6 +106,13 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
         name = s.get("name")
         if name and get_storage_by_name(name) is None:
             add_storage(name)
+
+    # Создаём категории
+    categories_data = data.get("categories", [])
+    for c in categories_data:
+        name = c.get("name")
+        if name and get_category_by_name(name) is None:
+            add_category(name)
 
     movies_data = data.get("movies", [])
     added = 0
@@ -140,6 +156,16 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
                 )
                 movie = get_movie_by_tmdb_id(tmdb_id, media_type)
                 if movie:
+                    set_movie_genres_from_string(movie.id, movie_data["genres"])
+                    category_names = m.get("category_names", [])
+                    cat_ids = []
+                    for cn in category_names:
+                        cat = get_category_by_name(cn)
+                        if cat:
+                            cat_ids.append(cat.id)
+                        else:
+                            cat_ids.append(add_category(cn))
+                    set_movie_categories(movie.id, cat_ids)
                     remove_files_by_movie_id(movie.id)
                     for file_item in files_data:
                         name = file_item.get("name") or "—"
@@ -167,6 +193,16 @@ def import_from_file(path: Path | str, replace_duplicates: bool = False) -> tupl
             poster_path=movie_data["poster_path"],
             personal_rating=movie_data["personal_rating"],
         )
+        set_movie_genres_from_string(movie_id, movie_data["genres"])
+        category_names = m.get("category_names", [])
+        cat_ids = []
+        for cn in category_names:
+            cat = get_category_by_name(cn)
+            if cat:
+                cat_ids.append(cat.id)
+            else:
+                cat_ids.append(add_category(cn))
+        set_movie_categories(movie_id, cat_ids)
         for file_item in files_data:
             name = file_item.get("name") or "—"
             size = int(file_item.get("size", 0))

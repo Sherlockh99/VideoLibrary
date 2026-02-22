@@ -59,7 +59,9 @@ import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.ui.MainViewModel
+import com.sh.video.videolibrary.ui.components.FullScreenImageDialog
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
+import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_ORIGINAL
 import com.sh.video.videolibrary.ui.components.formatFileSize
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -140,18 +142,36 @@ fun MovieDetailScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
+            var showFullScreenPoster by remember { mutableStateOf(false) }
+            if (showFullScreenPoster && movie.posterPath != null) {
+                FullScreenImageDialog(
+                    imageUrl = TMDB_IMAGE_ORIGINAL + movie.posterPath,
+                    contentDescription = movie.title,
+                    onDismiss = { showFullScreenPoster = false }
+                )
+            }
             Row(
                 modifier = Modifier.padding(vertical = 16.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                AsyncImage(
-                    model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
-                    contentDescription = movie.title,
+                Box(
                     modifier = Modifier
                         .width(120.dp)
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
+                        .height(180.dp)
+                        .then(
+                            if (movie.posterPath != null) Modifier.clickable { showFullScreenPoster = true }
+                            else Modifier
+                        )
+                ) {
+                    AsyncImage(
+                        model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
+                        contentDescription = movie.title,
+                        modifier = Modifier
+                            .width(120.dp)
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 Spacer(Modifier.width(16.dp))
                 Column(
                     modifier = Modifier

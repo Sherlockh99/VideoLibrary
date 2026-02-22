@@ -2,6 +2,7 @@ package com.sh.video.videolibrary.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -28,6 +33,7 @@ import com.sh.video.videolibrary.data.local.GenreEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 
 const val TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+const val TMDB_IMAGE_ORIGINAL = "https://image.tmdb.org/t/p/original"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -39,6 +45,14 @@ fun MovieCard(
     genres: List<GenreEntity> = emptyList(),
     onGenreClick: (Long) -> Unit = {}
 ) {
+    var showFullScreenPoster by remember { mutableStateOf(false) }
+    if (showFullScreenPoster && movie.posterPath != null) {
+        FullScreenImageDialog(
+            imageUrl = TMDB_IMAGE_ORIGINAL + movie.posterPath,
+            contentDescription = movie.title,
+            onDismiss = { showFullScreenPoster = false }
+        )
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -47,14 +61,24 @@ fun MovieCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(modifier = Modifier.padding(8.dp)) {
-            AsyncImage(
-                model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
-                contentDescription = movie.title,
+            Box(
                 modifier = Modifier
                     .width(60.dp)
-                    .height(90.dp),
-                contentScale = ContentScale.Crop
-            )
+                    .height(90.dp)
+                    .then(
+                        if (movie.posterPath != null) Modifier.clickable { showFullScreenPoster = true }
+                        else Modifier
+                    )
+            ) {
+                AsyncImage(
+                    model = if (movie.posterPath != null) TMDB_IMAGE_BASE + movie.posterPath else null,
+                    contentDescription = movie.title,
+                    modifier = Modifier
+                        .width(60.dp)
+                        .height(90.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
             Column(
                 modifier = Modifier
                     .padding(horizontal = 12.dp)

@@ -6,12 +6,22 @@
     python main.py search       - поиск в своей коллекции
     python main.py list         - показать все фильмы
     python main.py rate <id> <1-5> - поставить свою оценку
+    python main.py delete <movie_id> - удалить фильм (только без файлов)
     python main.py storage add <имя> - добавить хранилище
     python main.py storage list     - список хранилищ
     python main.py storage remove <id> - удалить хранилище
     python main.py file add <movie_id> <имя> [размер] [storage_id/имя...] - добавить файл
     python main.py file remove <file_id> - удалить файл
     python main.py file list <movie_id> - файлы фильма
+    python main.py category add <имя> - добавить категорию
+    python main.py category list - список категорий
+    python main.py category remove <id> - удалить категорию
+    python main.py category add-movie <category_id> <movie_id> - добавить фильм в категорию
+    python main.py category remove-movie <category_id> <movie_id> - убрать фильм из категории
+    python main.py actor list - актёры с кол-вом фильмов
+    python main.py actor show <id> - фильмы актёра
+    python main.py genre list - жанры с кол-вом фильмов
+    python main.py genre show <id> - фильмы жанра
     python main.py export [путь] - выгрузить коллекцию в .vlp
     python main.py import <путь> - загрузить коллекцию из .vlp
 """
@@ -35,10 +45,34 @@ from database import (
     add_file,
     add_file_to_storage,
     remove_file,
+    remove_movie,
     get_files_by_movie_id,
     get_storage_names_for_movie,
+    set_movie_genres_from_tmdb,
+    set_movie_actors,
+    add_category,
+    get_all_categories,
+    get_category_by_id,
+    get_category_by_name,
+    remove_category,
+    get_categories_by_movie_id,
+    get_category_ids_by_movie_id,
+    set_movie_categories,
+    get_movie_count_by_category_id,
+    get_movies_by_category_id,
+    get_all_actors_with_counts,
+    get_actor_by_id,
+    get_movies_by_actor_id,
+    get_actors_by_movie_id,
+    get_all_genres_with_counts,
+    get_genre_by_id,
+    get_movies_by_genre_id,
+    get_genres_by_movie_id,
     Movie,
     File,
+    Category,
+    Actor,
+    Genre,
 )
 from export_import import export_to_file, import_from_file
 
@@ -51,7 +85,7 @@ def format_movie_short(idx: int, m: dict) -> str:
     return f"  {idx}. {title} ({year}) — рейтинг: {rating:.1f}"
 
 
-def format_movie_db(m: Movie, storage_names: list[str] | None = None) -> str:
+def format_movie_db(m: Movie, storage_names: list[str] | None = None, show_actors: bool = True, show_categories: bool = True) -> str:
     """Представление фильма/сериала из базы данных."""
     if storage_names is None:
         storage_names = get_storage_names_for_movie(m.id)
@@ -63,6 +97,14 @@ def format_movie_db(m: Movie, storage_names: list[str] | None = None) -> str:
     ]
     if m.personal_rating:
         lines.append(f"      Ваша оценка: {m.personal_rating}/5")
+    if show_actors:
+        actors = get_actors_by_movie_id(m.id)
+        if actors:
+            lines.append(f"      Актёры: {', '.join(a.name for a in actors[:5])}{' ...' if len(actors) > 5 else ''}")
+    if show_categories:
+        cats = get_categories_by_movie_id(m.id)
+        if cats:
+            lines.append(f"      Категории: {', '.join(c.name for c in cats)}")
     if storage_names:
         lines.append(f"      Файлы на: {', '.join(storage_names)}")
     if m.overview:
@@ -137,7 +179,7 @@ def cmd_add():
         original = details.get("original_title", "") or ""
         release = details.get("release_date") or ""
 
-    add_movie(
+    movie_id = add_movie(
         tmdb_id=tmdb_id,
         media_type=media_type,
         title=title,
@@ -148,6 +190,22 @@ def cmd_add():
         release_date=release,
         poster_path=details.get("poster_path"),
     )
+
+    # Жанры в таблицу (для фильтрации по жанру)
+    set_movie_genres_from_tmdb(movie_id, details.get("genres") or [])
+
+    # Актёры из credits (первые 10 по порядку в титрах)
+    credits = client.get_movie_credits(tmdb_id) if media_type == "movie" else client.get_tv_credits(tmdb_id)
+    cast = credits.get("cast") or []
+    actors_data = []
+    for member in sorted(cast, key=lambda x: x.get("order", 999))[:10]:
+        pid = member.get("id")
+        name = member.get("name") or ""
+        order_val = member.get("order", 999)
+        if pid and name:
+            actors_data.append((int(pid), name, order_val))
+    if actors_data:
+        set_movie_actors(movie_id, actors_data)
 
     print(f'\n{label.capitalize()} "{title}" добавлен в коллекцию.')
     return 0
@@ -163,15 +221,37 @@ def _parse_storage_arg() -> str | None:
     return sys.argv[idx + 1].strip() or None
 
 
+def _parse_int_arg(flag: str) -> int | None:
+    """Парсит --flag <число> из sys.argv."""
+    if flag not in sys.argv:
+        return None
+    idx = sys.argv.index(flag)
+    if idx + 1 >= len(sys.argv):
+        return None
+    try:
+        return int(sys.argv[idx + 1])
+    except ValueError:
+        return None
+
+
 def cmd_search():
     """Поиск фильмов в своей коллекции."""
     storage_name = _parse_storage_arg()
+    category_id = _parse_int_arg("--category")
+    actor_id = _parse_int_arg("--actor")
+    genre_id = _parse_int_arg("--genre")
     if storage_name:
         print(f"Фильтр по хранилищу: {storage_name}")
+    if category_id:
+        print(f"Фильтр по категории id={category_id}")
+    if actor_id:
+        print(f"Фильтр по актёру id={actor_id}")
+    if genre_id:
+        print(f"Фильтр по жанру id={genre_id}")
 
     print("Поиск в коллекции (пустое поле = не учитывать)")
     title = input("Название: ").strip() or None
-    genre = input("Жанр: ").strip() or None
+    genre = input("Жанр (строка): ").strip() or None
 
     min_rating = None
     max_rating = None
@@ -208,6 +288,9 @@ def cmd_search():
         description=description,
         personal_rating=personal,
         storage_name=storage_name,
+        category_id=category_id,
+        actor_id=actor_id,
+        genre_id=genre_id,
     )
 
     print(f"\nНайдено: {len(movies)} фильм(ов)")
@@ -227,6 +310,23 @@ def cmd_list():
     for m in movies:
         print(format_movie_db(m))
         print()
+    return 0
+
+
+def cmd_delete() -> int:
+    """Удалить фильм (только если нет файлов)."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py delete <movie_id>")
+        return 1
+    try:
+        movie_id = int(sys.argv[2])
+    except ValueError:
+        print("movie_id должен быть числом.")
+        return 1
+    if remove_movie(movie_id):
+        print("Фильм удалён из коллекции.")
+    else:
+        print("Не удалось удалить. У фильма есть файлы — сначала удалите их командой file remove.")
     return 0
 
 
@@ -314,6 +414,155 @@ def cmd_storage() -> int:
             print("Хранилище с таким ID не найдено.")
         return 0
 
+    print(f"Неизвестная подкоманда: {sub}")
+    return 1
+
+
+def cmd_category() -> int:
+    """Управление категориями: add, list, remove, add-movie, remove-movie."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py category <add|list|remove|add-movie|remove-movie> [аргументы]")
+        return 1
+    sub = sys.argv[2].lower()
+    if sub == "add":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py category add <имя>")
+            return 1
+        name = " ".join(sys.argv[3:]).strip()
+        if not name:
+            print("Имя категории не может быть пустым.")
+            return 1
+        cid = add_category(name)
+        print(f'Категория "{name}" добавлена (id={cid}).')
+        return 0
+    if sub == "list":
+        cats = get_all_categories()
+        if not cats:
+            print("Нет категорий.")
+            return 0
+        for c in cats:
+            cnt = get_movie_count_by_category_id(c.id)
+            print(f"  [{c.id}] {c.name} ({cnt} фильм(ов))")
+        return 0
+    if sub == "remove":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py category remove <id>")
+            return 1
+        try:
+            cid = int(sys.argv[3])
+        except ValueError:
+            print("ID должен быть числом.")
+            return 1
+        if remove_category(cid):
+            print("Категория удалена.")
+        else:
+            print("Нельзя удалить: к категории привязаны фильмы. Сначала отвяжите их.")
+        return 0
+    if sub == "add-movie":
+        if len(sys.argv) < 5:
+            print("Использование: python main.py category add-movie <category_id> <movie_id>")
+            return 1
+        try:
+            cid, mid = int(sys.argv[3]), int(sys.argv[4])
+        except ValueError:
+            print("category_id и movie_id должны быть числами.")
+            return 1
+        ids = get_category_ids_by_movie_id(mid)
+        if cid in ids:
+            print("Фильм уже в этой категории.")
+            return 0
+        set_movie_categories(mid, ids + [cid])
+        print("Фильм добавлен в категорию.")
+        return 0
+    if sub == "remove-movie":
+        if len(sys.argv) < 5:
+            print("Использование: python main.py category remove-movie <category_id> <movie_id>")
+            return 1
+        try:
+            cid, mid = int(sys.argv[3]), int(sys.argv[4])
+        except ValueError:
+            print("category_id и movie_id должны быть числами.")
+            return 1
+        ids = get_category_ids_by_movie_id(mid)
+        set_movie_categories(mid, [i for i in ids if i != cid])
+        print("Фильм убран из категории.")
+        return 0
+    print(f"Неизвестная подкоманда: {sub}")
+    return 1
+
+
+def cmd_actor() -> int:
+    """Актёры: list, show."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py actor <list|show <id>>")
+        return 1
+    sub = sys.argv[2].lower()
+    if sub == "list":
+        actors = get_all_actors_with_counts()
+        if not actors:
+            print("Нет актёров в базе.")
+            return 0
+        for a, cnt in actors[:50]:  # топ 50
+            print(f"  [{a.id}] {a.name} ({cnt} фильм(ов))")
+        if len(actors) > 50:
+            print(f"  ... и ещё {len(actors) - 50}")
+        return 0
+    if sub == "show":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py actor show <id>")
+            return 1
+        try:
+            aid = int(sys.argv[3])
+        except ValueError:
+            print("ID должен быть числом.")
+            return 1
+        actor = get_actor_by_id(aid)
+        if not actor:
+            print("Актёр не найден.")
+            return 1
+        movies = get_movies_by_actor_id(aid)
+        print(f"Актёр: {actor.name}")
+        print(f"Фильмов в коллекции: {len(movies)}\n")
+        for m in movies:
+            print(format_movie_db(m))
+        return 0
+    print(f"Неизвестная подкоманда: {sub}")
+    return 1
+
+
+def cmd_genre() -> int:
+    """Жанры: list, show."""
+    if len(sys.argv) < 3:
+        print("Использование: python main.py genre <list|show <id>>")
+        return 1
+    sub = sys.argv[2].lower()
+    if sub == "list":
+        genres = get_all_genres_with_counts()
+        if not genres:
+            print("Нет жанров в базе.")
+            return 0
+        for g, cnt in genres:
+            print(f"  [{g.id}] {g.name} ({cnt} фильм(ов))")
+        return 0
+    if sub == "show":
+        if len(sys.argv) < 4:
+            print("Использование: python main.py genre show <id>")
+            return 1
+        try:
+            gid = int(sys.argv[3])
+        except ValueError:
+            print("ID должен быть числом.")
+            return 1
+        genre = get_genre_by_id(gid)
+        if not genre:
+            print("Жанр не найден.")
+            return 1
+        movies = get_movies_by_genre_id(gid)
+        print(f"Жанр: {genre.name}")
+        print(f"Фильмов в коллекции: {len(movies)}\n")
+        for m in movies:
+            print(format_movie_db(m))
+        return 0
     print(f"Неизвестная подкоманда: {sub}")
     return 1
 
@@ -444,10 +693,18 @@ def main():
         return cmd_list()
     elif cmd == "rate":
         return cmd_rate()
+    elif cmd == "delete":
+        return cmd_delete()
     elif cmd == "storage":
         return cmd_storage()
     elif cmd == "file":
         return cmd_file()
+    elif cmd == "category":
+        return cmd_category()
+    elif cmd == "actor":
+        return cmd_actor()
+    elif cmd == "genre":
+        return cmd_genre()
     elif cmd == "export":
         return cmd_export()
     elif cmd == "import":

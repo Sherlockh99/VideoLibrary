@@ -7,6 +7,29 @@ from config import DB_PATH
 
 
 @dataclass
+class Category:
+    """Модель категории (плейлист фильмов)."""
+    id: int
+    name: str
+
+
+@dataclass
+class Actor:
+    """Модель актёра."""
+    id: int
+    tmdb_person_id: int
+    name: str
+
+
+@dataclass
+class Genre:
+    """Модель жанра."""
+    id: int
+    tmdb_genre_id: Optional[int]
+    name: str
+
+
+@dataclass
 class Movie:
     """Модель фильма/сериала в базе данных."""
     id: int
@@ -110,6 +133,92 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_storage_files_storage ON storage_files(storage_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_storage_files_file ON storage_files(file_id)")
 
+    # Категории (плейлисты)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        )
+    """)
+
+    # Связь фильмов и категорий
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS movie_categories (
+            movie_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            PRIMARY KEY (movie_id, category_id),
+            FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_categories_movie ON movie_categories(movie_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_categories_category ON movie_categories(category_id)")
+
+    # Актёры
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS actors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tmdb_person_id INTEGER NOT NULL UNIQUE,
+            name TEXT NOT NULL
+        )
+    """)
+
+    # Связь фильмов и актёров (с порядком в титрах)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS movie_actors (
+            movie_id INTEGER NOT NULL,
+            actor_id INTEGER NOT NULL,
+            credit_order INTEGER,
+            PRIMARY KEY (movie_id, actor_id),
+            FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+            FOREIGN KEY (actor_id) REFERENCES actors(id) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_actors_movie ON movie_actors(movie_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_actors_actor ON movie_actors(actor_id)")
+
+    # Жанры (таблица, не строка)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS genres (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tmdb_genre_id INTEGER,
+            name TEXT NOT NULL
+        )
+    """)
+
+    # Связь фильмов и жанров
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS movie_genres (
+            movie_id INTEGER NOT NULL,
+            genre_id INTEGER NOT NULL,
+            PRIMARY KEY (movie_id, genre_id),
+            FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+            FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_genres_movie ON movie_genres(movie_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_movie_genres_genre ON movie_genres(genre_id)")
+
+    # Миграция: для фильмов с genres но без записей в movie_genres — заполнить из строки
+    cursor.execute(
+        """
+        SELECT m.id, m.genres FROM movies m
+        WHERE m.genres IS NOT NULL AND m.genres != ''
+        AND NOT EXISTS (SELECT 1 FROM movie_genres mg WHERE mg.movie_id = m.id)
+        """
+    )
+    for mid, gstr in cursor.fetchall():
+        if gstr:
+            for name in (n.strip() for n in gstr.split(",") if n.strip()):
+                cursor.execute("SELECT id FROM genres WHERE name = ?", (name,))
+                row = cursor.fetchone()
+                if row:
+                    gid = row[0]
+                else:
+                    cursor.execute("INSERT INTO genres (tmdb_genre_id, name) VALUES (NULL, ?)", (name,))
+                    gid = cursor.lastrowid
+                cursor.execute("INSERT OR IGNORE INTO movie_genres (movie_id, genre_id) VALUES (?, ?)", (mid, gid))
+
     # Миграция: удалить старую таблицу movie_files если была
     cursor.execute("DROP TABLE IF EXISTS movie_files")
 
@@ -152,6 +261,69 @@ def add_movie(
     conn.commit()
     conn.close()
     return movie_id
+
+
+def set_movie_genres_from_tmdb(movie_id: int, tmdb_genres: list[dict]) -> None:
+    """Связывает фильм с жанрами по данным TMDb. tmdb_genres: [{"id": N, "name": "..."}, ...]"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM movie_genres WHERE movie_id = ?", (movie_id,))
+    for g in tmdb_genres:
+        tg_id = g.get("id")
+        name = g.get("name", "")
+        if not name:
+            continue
+        cursor.execute("SELECT id FROM genres WHERE tmdb_genre_id = ?", (tg_id,))
+        row = cursor.fetchone()
+        if row:
+            genre_id = row[0]
+        else:
+            cursor.execute("INSERT INTO genres (tmdb_genre_id, name) VALUES (?, ?)", (tg_id, name))
+            genre_id = cursor.lastrowid
+        cursor.execute("INSERT OR IGNORE INTO movie_genres (movie_id, genre_id) VALUES (?, ?)", (movie_id, genre_id))
+    conn.commit()
+    conn.close()
+
+
+def set_movie_genres_from_string(movie_id: int, genres_str: str) -> None:
+    """Связывает фильм с жанрами по строке имён (для импорта)."""
+    if not genres_str or not genres_str.strip():
+        return
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM movie_genres WHERE movie_id = ?", (movie_id,))
+    for name in (n.strip() for n in genres_str.split(",") if n.strip()):
+        cursor.execute("SELECT id FROM genres WHERE name = ?", (name,))
+        row = cursor.fetchone()
+        if row:
+            genre_id = row[0]
+        else:
+            cursor.execute("INSERT INTO genres (tmdb_genre_id, name) VALUES (NULL, ?)", (name,))
+            genre_id = cursor.lastrowid
+        cursor.execute("INSERT OR IGNORE INTO movie_genres (movie_id, genre_id) VALUES (?, ?)", (movie_id, genre_id))
+    conn.commit()
+    conn.close()
+
+
+def set_movie_actors(movie_id: int, actors_data: list[tuple[int, str, int]]) -> None:
+    """Связывает фильм с актёрами. actors_data: [(tmdb_person_id, name, credit_order), ...]"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM movie_actors WHERE movie_id = ?", (movie_id,))
+    for tmdb_pid, name, order_val in actors_data:
+        cursor.execute("SELECT id FROM actors WHERE tmdb_person_id = ?", (tmdb_pid,))
+        row = cursor.fetchone()
+        if row:
+            actor_id = row[0]
+        else:
+            cursor.execute("INSERT INTO actors (tmdb_person_id, name) VALUES (?, ?)", (tmdb_pid, name))
+            actor_id = cursor.lastrowid
+        cursor.execute(
+            "INSERT OR IGNORE INTO movie_actors (movie_id, actor_id, credit_order) VALUES (?, ?, ?)",
+            (movie_id, actor_id, order_val),
+        )
+    conn.commit()
+    conn.close()
 
 
 def movie_exists(tmdb_id: int, media_type: str = "movie") -> bool:
@@ -215,6 +387,9 @@ def search_movies(
     description: Optional[str] = None,
     personal_rating: Optional[int] = None,
     storage_name: Optional[str] = None,
+    category_id: Optional[int] = None,
+    actor_id: Optional[int] = None,
+    genre_id: Optional[int] = None,
 ) -> list[Movie]:
     """
     Поиск фильмов в базе по различным критериям.
@@ -224,71 +399,67 @@ def search_movies(
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
+    joins = []
     if storage_name:
-        query = """
-            SELECT DISTINCT m.* FROM movies m
-            JOIN files f ON f.movie_id = m.id
-            JOIN storage_files sf ON sf.file_id = f.id
-            JOIN storages s ON s.id = sf.storage_id AND s.name = ?
-            WHERE 1=1
-        """
-        params = [storage_name]
+        joins.append("JOIN files f ON f.movie_id = m.id")
+        joins.append("JOIN storage_files sf ON sf.file_id = f.id")
+        joins.append("JOIN storages s ON s.id = sf.storage_id AND s.name = ?")
+    if category_id is not None:
+        joins.append("JOIN movie_categories mc ON mc.movie_id = m.id AND mc.category_id = ?")
+    if actor_id is not None:
+        joins.append("JOIN movie_actors ma ON ma.movie_id = m.id AND ma.actor_id = ?")
+    if genre_id is not None:
+        joins.append("JOIN movie_genres mg ON mg.movie_id = m.id AND mg.genre_id = ?")
+
+    if joins:
+        join_str = " " + " ".join(joins)
+        query = f"SELECT DISTINCT m.* FROM movies m{join_str} WHERE 1=1"
+        params = []
+        if storage_name:
+            params.append(storage_name)
+        if category_id is not None:
+            params.append(category_id)
+        if actor_id is not None:
+            params.append(actor_id)
+        if genre_id is not None:
+            params.append(genre_id)
     else:
         query = "SELECT * FROM movies WHERE 1=1"
         params = []
 
+    tbl = "m" if joins else ""
+    col_prefix = f"{tbl}." if tbl else ""
     if title:
-        query += " AND (m.title LIKE ? OR m.original_title LIKE ?)" if storage_name else " AND (title LIKE ? OR original_title LIKE ?)"
+        query += f" AND ({col_prefix}title LIKE ? OR {col_prefix}original_title LIKE ?)"
         pattern = f"%{title}%"
         params.extend([pattern, pattern])
 
     if genre:
-        col = "m.genres" if storage_name else "genres"
-        query += f" AND {col} LIKE ?"
+        query += f" AND {col_prefix}genres LIKE ?"
         params.append(f"%{genre}%")
 
     if min_rating is not None:
-        col = "m.rating" if storage_name else "rating"
-        query += f" AND {col} >= ?"
+        query += f" AND {col_prefix}rating >= ?"
         params.append(min_rating)
 
     if max_rating is not None:
-        col = "m.rating" if storage_name else "rating"
-        query += f" AND {col} <= ?"
+        query += f" AND {col_prefix}rating <= ?"
         params.append(max_rating)
 
     if description:
-        col = "m.overview" if storage_name else "overview"
-        query += f" AND {col} LIKE ?"
+        query += f" AND {col_prefix}overview LIKE ?"
         params.append(f"%{description}%")
 
     if personal_rating is not None:
-        col = "m.personal_rating" if storage_name else "personal_rating"
-        query += f" AND {col} = ?"
+        query += f" AND {col_prefix}personal_rating = ?"
         params.append(personal_rating)
 
-    query += " ORDER BY m.title" if storage_name else " ORDER BY title"
+    query += f" ORDER BY {col_prefix}title"
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
 
-    return [
-        Movie(
-            id=row["id"],
-            tmdb_id=row["tmdb_id"],
-            media_type=row.get("media_type", "movie") or "movie",
-            title=row["title"],
-            original_title=row["original_title"] or "",
-            genres=row["genres"] or "",
-            rating=row["rating"] or 0,
-            overview=row["overview"] or "",
-            release_date=row["release_date"] or "",
-            poster_path=row["poster_path"],
-            personal_rating=row["personal_rating"],
-            created_at=row["created_at"],
-        )
-        for row in rows
-    ]
+    return [_row_to_movie(row) for row in rows]
 
 
 def get_all_movies() -> list[Movie]:
@@ -304,22 +475,7 @@ def get_movie_by_tmdb_id(tmdb_id: int, media_type: str = "movie") -> Optional[Mo
     cursor.execute("SELECT * FROM movies WHERE tmdb_id = ? AND media_type = ?", (tmdb_id, media_type))
     row = cursor.fetchone()
     conn.close()
-    if not row:
-        return None
-    return Movie(
-        id=row["id"],
-        tmdb_id=row["tmdb_id"],
-        media_type=row.get("media_type", "movie") or "movie",
-        title=row["title"],
-        original_title=row["original_title"] or "",
-        genres=row["genres"] or "",
-        rating=row["rating"] or 0,
-        overview=row["overview"] or "",
-        release_date=row["release_date"] or "",
-        poster_path=row["poster_path"],
-        personal_rating=row["personal_rating"],
-        created_at=row["created_at"],
-    )
+    return _row_to_movie(row) if row else None
 
 
 def get_movie_by_id(movie_id: int) -> Optional[Movie]:
@@ -330,22 +486,7 @@ def get_movie_by_id(movie_id: int) -> Optional[Movie]:
     cursor.execute("SELECT * FROM movies WHERE id = ?", (movie_id,))
     row = cursor.fetchone()
     conn.close()
-    if not row:
-        return None
-    return Movie(
-        id=row["id"],
-        tmdb_id=row["tmdb_id"],
-        media_type=row.get("media_type", "movie") or "movie",
-        title=row["title"],
-        original_title=row["original_title"] or "",
-        genres=row["genres"] or "",
-        rating=row["rating"] or 0,
-        overview=row["overview"] or "",
-        release_date=row["release_date"] or "",
-        poster_path=row["poster_path"],
-        personal_rating=row["personal_rating"],
-        created_at=row["created_at"],
-    )
+    return _row_to_movie(row) if row else None
 
 
 # --- Storages ---
@@ -474,6 +615,301 @@ def remove_file(file_id: int) -> bool:
     conn.commit()
     conn.close()
     return deleted
+
+
+def remove_movie(movie_id: int) -> bool:
+    """Удаляет фильм из коллекции. Только если у него нет файлов."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM files WHERE movie_id = ?", (movie_id,))
+    if cursor.fetchone():
+        conn.close()
+        return False
+    cursor.execute("DELETE FROM movie_categories WHERE movie_id = ?", (movie_id,))
+    cursor.execute("DELETE FROM movie_actors WHERE movie_id = ?", (movie_id,))
+    cursor.execute("DELETE FROM movie_genres WHERE movie_id = ?", (movie_id,))
+    cursor.execute("DELETE FROM movies WHERE id = ?", (movie_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+# --- Categories ---
+
+
+def add_category(name: str) -> int:
+    """Добавляет категорию. Если уже есть с таким именем — возвращает её id."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM categories WHERE name = ?", (name.strip(),))
+    row = cursor.fetchone()
+    if row:
+        conn.close()
+        return row[0]
+    cursor.execute("INSERT INTO categories (name) VALUES (?)", (name.strip(),))
+    cid = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return cid
+
+
+def get_all_categories() -> list[Category]:
+    """Возвращает все категории."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categories ORDER BY name")
+    rows = cursor.fetchall()
+    conn.close()
+    return [Category(id=row["id"], name=row["name"]) for row in rows]
+
+
+def get_category_by_id(category_id: int) -> Optional[Category]:
+    """Возвращает категорию по id."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return Category(id=row["id"], name=row["name"]) if row is not None else None
+
+
+def get_category_by_name(name: str) -> Optional[Category]:
+    """Возвращает категорию по имени."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categories WHERE name = ?", (name.strip(),))
+    row = cursor.fetchone()
+    conn.close()
+    return Category(id=row["id"], name=row["name"]) if row is not None else None
+
+
+def remove_category(category_id: int) -> bool:
+    """Удаляет категорию. Только если к ней не привязаны фильмы."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM movie_categories WHERE category_id = ?", (category_id,))
+    if cursor.fetchone():
+        conn.close()
+        return False
+    cursor.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+def get_categories_by_movie_id(movie_id: int) -> list[Category]:
+    """Возвращает категории фильма."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT c.id, c.name FROM categories c JOIN movie_categories mc ON c.id = mc.category_id WHERE mc.movie_id = ? ORDER BY c.name",
+        (movie_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [Category(id=row["id"], name=row["name"]) for row in rows]
+
+
+def get_category_ids_by_movie_id(movie_id: int) -> list[int]:
+    """Возвращает id категорий фильма."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT category_id FROM movie_categories WHERE movie_id = ?", (movie_id,))
+    ids = [r[0] for r in cursor.fetchall()]
+    conn.close()
+    return ids
+
+
+def set_movie_categories(movie_id: int, category_ids: list[int]) -> None:
+    """Устанавливает категории фильма (заменяет текущие)."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM movie_categories WHERE movie_id = ?", (movie_id,))
+    for cid in category_ids:
+        cursor.execute("INSERT OR IGNORE INTO movie_categories (movie_id, category_id) VALUES (?, ?)", (movie_id, cid))
+    conn.commit()
+    conn.close()
+
+
+def get_movie_count_by_category_id(category_id: int) -> int:
+    """Количество фильмов в категории."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM movie_categories WHERE category_id = ?", (category_id,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def get_movies_by_category_id(category_id: int) -> list[Movie]:
+    """Возвращает фильмы категории."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT m.* FROM movies m JOIN movie_categories mc ON m.id = mc.movie_id WHERE mc.category_id = ? ORDER BY m.title",
+        (category_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [_row_to_movie(row) for row in rows]
+
+
+# --- Actors ---
+
+
+def get_all_actors_with_counts() -> list[tuple[Actor, int]]:
+    """Возвращает всех актёров с количеством фильмов."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT a.id, a.tmdb_person_id, a.name, COUNT(ma.movie_id) as cnt
+        FROM actors a
+        LEFT JOIN movie_actors ma ON a.id = ma.actor_id
+        GROUP BY a.id
+        ORDER BY cnt DESC, a.name
+        """
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [(Actor(id=r["id"], tmdb_person_id=r["tmdb_person_id"], name=r["name"]), r["cnt"]) for r in rows]
+
+
+def get_actor_by_id(actor_id: int) -> Optional[Actor]:
+    """Возвращает актёра по id."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM actors WHERE id = ?", (actor_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return Actor(id=row["id"], tmdb_person_id=row["tmdb_person_id"], name=row["name"]) if row else None
+
+
+def get_movies_by_actor_id(actor_id: int) -> list[Movie]:
+    """Возвращает фильмы актёра."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT m.* FROM movies m
+        JOIN movie_actors ma ON m.id = ma.movie_id
+        WHERE ma.actor_id = ?
+        ORDER BY ma.credit_order IS NULL, ma.credit_order ASC, m.title
+        """,
+        (actor_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [_row_to_movie(row) for row in rows]
+
+
+def get_actors_by_movie_id(movie_id: int) -> list[Actor]:
+    """Возвращает актёров фильма (по порядку в титрах)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT a.id, a.tmdb_person_id, a.name FROM actors a
+        JOIN movie_actors ma ON a.id = ma.actor_id
+        WHERE ma.movie_id = ?
+        ORDER BY ma.credit_order IS NULL, ma.credit_order ASC, a.name
+        """,
+        (movie_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [Actor(id=r["id"], tmdb_person_id=r["tmdb_person_id"], name=r["name"]) for r in rows]
+
+
+# --- Genres ---
+
+
+def get_all_genres_with_counts() -> list[tuple[Genre, int]]:
+    """Возвращает все жанры с количеством фильмов."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT g.id, g.tmdb_genre_id, g.name, COUNT(mg.movie_id) as cnt
+        FROM genres g
+        LEFT JOIN movie_genres mg ON g.id = mg.genre_id
+        GROUP BY g.id
+        ORDER BY cnt DESC, g.name
+        """
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [(Genre(id=r["id"], tmdb_genre_id=r["tmdb_genre_id"], name=r["name"]), r["cnt"]) for r in rows]
+
+
+def get_genre_by_id(genre_id: int) -> Optional[Genre]:
+    """Возвращает жанр по id."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM genres WHERE id = ?", (genre_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return Genre(id=row["id"], tmdb_genre_id=row["tmdb_genre_id"], name=row["name"]) if row else None
+
+
+def get_movies_by_genre_id(genre_id: int) -> list[Movie]:
+    """Возвращает фильмы жанра."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT m.* FROM movies m JOIN movie_genres mg ON m.id = mg.movie_id WHERE mg.genre_id = ? ORDER BY m.title",
+        (genre_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [_row_to_movie(row) for row in rows]
+
+
+def get_genres_by_movie_id(movie_id: int) -> list[Genre]:
+    """Возвращает жанры фильма (из таблицы genres)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT g.id, g.tmdb_genre_id, g.name FROM genres g JOIN movie_genres mg ON g.id = mg.genre_id WHERE mg.movie_id = ? ORDER BY g.name",
+        (movie_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [Genre(id=r["id"], tmdb_genre_id=r["tmdb_genre_id"], name=r["name"]) for r in rows]
+
+
+def _row_to_movie(row) -> Movie:
+    """Преобразует sqlite3.Row в Movie."""
+    r = {k: row[k] for k in row.keys()} if hasattr(row, "keys") else row
+    return Movie(
+        id=r["id"],
+        tmdb_id=r["tmdb_id"],
+        media_type=r.get("media_type") or "movie",
+        title=r["title"],
+        original_title=r.get("original_title") or "",
+        genres=r.get("genres") or "",
+        rating=r.get("rating") or 0,
+        overview=r.get("overview") or "",
+        release_date=r.get("release_date") or "",
+        poster_path=r.get("poster_path"),
+        personal_rating=r.get("personal_rating"),
+        created_at=r["created_at"],
+    )
 
 
 def get_files_by_movie_id(movie_id: int) -> list[tuple[File, list[Storage]]]:
