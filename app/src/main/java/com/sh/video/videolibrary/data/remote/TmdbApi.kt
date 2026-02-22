@@ -34,10 +34,16 @@ interface TmdbApi {
     ): TmdbTvDetails
 
     @GET("movie/{movie_id}/credits")
-    suspend fun getMovieCredits(@Path("movie_id") movieId: Long): TmdbCreditsResponse
+    suspend fun getMovieCredits(
+        @Path("movie_id") movieId: Long,
+        @Query("language") language: String = "ru-RU"
+    ): TmdbCreditsResponse
 
     @GET("tv/{tv_id}/credits")
-    suspend fun getTvCredits(@Path("tv_id") tvId: Long): TmdbCreditsResponse
+    suspend fun getTvCredits(
+        @Path("tv_id") tvId: Long,
+        @Query("language") language: String = "ru-RU"
+    ): TmdbCreditsResponse
 }
 
 data class TmdbCreditsResponse(

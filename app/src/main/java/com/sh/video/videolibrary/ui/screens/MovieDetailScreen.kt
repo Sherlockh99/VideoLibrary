@@ -84,6 +84,7 @@ fun MovieDetailScreen(
     val storages by viewModel.storages.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val movieCategories by viewModel.movieCategories.collectAsState()
+    val movieTopActors by viewModel.movieTopActors.collectAsState()
     var showAddFileDialog by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var categoryToUnlink by remember { mutableStateOf<CategoryEntity?>(null) }
@@ -165,6 +166,11 @@ fun MovieDetailScreen(
                     if (movie.genres.isNotBlank()) {
                         Text("Жанры", style = MaterialTheme.typography.titleSmall)
                         Text(movie.genres, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    if (movieTopActors.isNotEmpty()) {
+                        Text("В ролях", style = MaterialTheme.typography.titleSmall)
+                        Text(movieTopActors.joinToString(", "), style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(12.dp))
                     }
                     if (movie.overview.isNotBlank()) {

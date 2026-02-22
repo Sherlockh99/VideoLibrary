@@ -107,6 +107,14 @@ class MovieRepository(
         }
     }
 
+    /** Загружает актёров с TMDB для существующего фильма, если в базе их ещё нет. */
+    suspend fun loadActorsFromTmdbIfEmpty(movieId: Long, tmdbId: Long, mediaType: String) {
+        val existingIds = movieActorDao.getActorIdsByMovieId(movieId)
+        if (existingIds.isEmpty()) {
+            ensureActorsForMovie(movieId, tmdbId, mediaType)
+        }
+    }
+
     suspend fun addMovie(details: TmdbMovieDetails): Long {
         if (movieDao.existsByTmdbIdAndMediaType(details.id, "movie")) return -1
         val genres = details.genres?.joinToString(", ") { it.name } ?: ""
