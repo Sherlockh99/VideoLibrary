@@ -10,10 +10,12 @@ import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.repository.ActorWithMovieCount
 import com.sh.video.videolibrary.data.repository.CategoryWithMovieCount
+import com.sh.video.videolibrary.data.repository.GenreWithMovieCount
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.CategoryEntity
+import com.sh.video.videolibrary.data.local.GenreEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
@@ -154,6 +156,10 @@ class MainViewModel(context: Context) : ViewModel() {
 
     val actorsWithMovieCounts: StateFlow<List<ActorWithMovieCount>> =
         repository.getActorsWithMovieCounts()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val genresWithMovieCounts: StateFlow<List<GenreWithMovieCount>> =
+        repository.getGenresWithMovieCounts()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _categoryRemoveError = MutableStateFlow<String?>(null)
@@ -398,6 +404,27 @@ class MainViewModel(context: Context) : ViewModel() {
 
     private val _selectedActor = MutableStateFlow<ActorEntity?>(null)
     val selectedActor = _selectedActor.asStateFlow()
+
+    private val _genreMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
+    val genreMovies = _genreMovies.asStateFlow()
+
+    private val _selectedGenre = MutableStateFlow<GenreEntity?>(null)
+    val selectedGenre = _selectedGenre.asStateFlow()
+
+    fun loadGenreMovies(genreId: Long) {
+        viewModelScope.launch {
+            val movies = repository.getMoviesByGenreId(genreId)
+            val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
+            _genreMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+        }
+    }
+
+    fun loadGenre(genreId: Long) {
+        viewModelScope.launch {
+            _selectedGenre.value = repository.getGenreById(genreId)
+            _selectedGenre.value?.let { loadGenreMovies(it.id) }
+        }
+    }
 
     fun loadActor(actorId: Long) {
         viewModelScope.launch {

@@ -5,9 +5,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GenreDao {
+
+    @Query("SELECT * FROM genres ORDER BY name")
+    fun getAllFlow(): Flow<List<GenreEntity>>
 
     @Query("SELECT * FROM genres ORDER BY name")
     suspend fun getAllSync(): List<GenreEntity>

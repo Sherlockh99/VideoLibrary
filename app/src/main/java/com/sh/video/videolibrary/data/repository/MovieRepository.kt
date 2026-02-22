@@ -47,6 +47,8 @@ data class CategoryWithMovieCount(val category: CategoryEntity, val movieCount: 
 
 data class ActorWithMovieCount(val actor: ActorEntity, val movieCount: Int)
 
+data class GenreWithMovieCount(val genre: GenreEntity, val movieCount: Int)
+
 class MovieRepository(
     private val context: Context,
     private val tmdbApiProvider: () -> TmdbApi
@@ -448,6 +450,20 @@ class MovieRepository(
         movieActorDao.getMoviesByActorId(actorId)
 
     suspend fun getActorById(id: Long): ActorEntity? = actorDao.getById(id)
+
+    fun getGenresWithMovieCounts(): Flow<List<GenreWithMovieCount>> = flow {
+        genreDao.getAllFlow().collect { genres ->
+            val withCounts = genres.map { g ->
+                GenreWithMovieCount(g, movieGenreDao.getMovieCountByGenreId(g.id))
+            }.filter { it.movieCount > 0 }
+            emit(withCounts)
+        }
+    }
+
+    suspend fun getMoviesByGenreId(genreId: Long): List<MovieEntity> =
+        movieGenreDao.getMoviesByGenreId(genreId)
+
+    suspend fun getGenreById(id: Long): GenreEntity? = genreDao.getById(id)
 
     /** Возвращает до limit актёров в главных ролях для фильма (по порядку в титрах). */
     suspend fun getTopActorsByMovieId(movieId: Long, limit: Int = 5): List<ActorEntity> {

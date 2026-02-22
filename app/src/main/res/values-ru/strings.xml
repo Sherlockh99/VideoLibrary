@@ -15,6 +15,8 @@
     <string name="home_settings_subtitle">Импорт и экспорт .vlp</string>
     <string name="home_actors">Актеры</string>
     <string name="home_actors_subtitle">Актеры из вашей коллекции</string>
+    <string name="home_genres">Жанры</string>
+    <string name="home_genres_subtitle">Жанры из вашей коллекции</string>
 
     <!-- Common -->
     <string name="back">Назад</string>
@@ -102,6 +104,15 @@
     <string name="actors_movies_count">Фильмов: %d</string>
     <string name="actors_refreshing">Обновление имён…</string>
     <string name="add_from_tmdb">Добавить из TMDb</string>
+
+    <!-- Genres -->
+    <string name="genres_title">Жанры</string>
+    <string name="genres_empty">Нет жанров в базе</string>
+    <string name="genres_empty_hint">Добавьте фильмы или сериалы из TMDb — жанры загрузятся автоматически</string>
+    <string name="genres_search_placeholder">Поиск жанра</string>
+    <string name="genres_nothing_found">Ничего не найдено</string>
+    <string name="genres_movies_count">Фильмов: %d</string>
+    <string name="no_movies_in_genre">Нет фильмов в этом жанре</string>
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>

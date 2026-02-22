@@ -2,6 +2,8 @@ package com.sh.video.videolibrary.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocalMovies
+import androidx.compose.material.icons.filled.MovieFilter
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -39,11 +42,13 @@ fun HomeScreen(
     onStoragesClick: () -> Unit,
     onCategoriesClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onActorsClick: () -> Unit = {}
+    onActorsClick: () -> Unit = {},
+    onGenresClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -90,17 +95,24 @@ fun HomeScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = stringResource(R.string.home_settings),
-            subtitle = stringResource(R.string.home_settings_subtitle),
-            icon = Icons.Default.Settings,
-            onClick = onSettingsClick
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        HomeLinkCard(
             title = stringResource(R.string.home_actors),
             subtitle = stringResource(R.string.home_actors_subtitle),
             icon = Icons.Default.Person,
             onClick = onActorsClick
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        HomeLinkCard(
+            title = stringResource(R.string.home_genres),
+            subtitle = stringResource(R.string.home_genres_subtitle),
+            icon = Icons.Default.MovieFilter,
+            onClick = onGenresClick
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        HomeLinkCard(
+            title = stringResource(R.string.home_settings),
+            subtitle = stringResource(R.string.home_settings_subtitle),
+            icon = Icons.Default.Settings,
+            onClick = onSettingsClick
         )
     }
 }

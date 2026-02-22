@@ -15,6 +15,8 @@
     <string name="home_settings_subtitle">Import and export .vlp</string>
     <string name="home_actors">Actors</string>
     <string name="home_actors_subtitle">Actors from your collection</string>
+    <string name="home_genres">Genres</string>
+    <string name="home_genres_subtitle">Genres from your collection</string>
 
     <!-- Common -->
     <string name="back">Back</string>
@@ -102,6 +104,15 @@
     <string name="actors_movies_count">Movies: %d</string>
     <string name="actors_refreshing">Updating names…</string>
     <string name="add_from_tmdb">Add from TMDb</string>
+
+    <!-- Genres -->
+    <string name="genres_title">Genres</string>
+    <string name="genres_empty">No genres in database</string>
+    <string name="genres_empty_hint">Add movies or TV shows from TMDb — genres will load automatically</string>
+    <string name="genres_search_placeholder">Search genre</string>
+    <string name="genres_nothing_found">Nothing found</string>
+    <string name="genres_movies_count">Movies: %d</string>
+    <string name="no_movies_in_genre">No movies in this genre</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

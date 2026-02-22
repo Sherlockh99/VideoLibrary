@@ -30,6 +30,8 @@ import com.sh.video.videolibrary.ui.MainViewModelFactory
 import com.sh.video.videolibrary.ui.screens.AboutScreen
 import com.sh.video.videolibrary.ui.screens.ActorDetailScreen
 import com.sh.video.videolibrary.ui.screens.ActorsScreen
+import com.sh.video.videolibrary.ui.screens.GenreDetailScreen
+import com.sh.video.videolibrary.ui.screens.GenresScreen
 import com.sh.video.videolibrary.ui.screens.CategoriesScreen
 import com.sh.video.videolibrary.ui.screens.CategoryDetailScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
@@ -81,7 +83,8 @@ class MainActivity : ComponentActivity() {
                                 onStoragesClick = { navController.navigate("storages") },
                                 onCategoriesClick = { navController.navigate("categories") },
                                 onSettingsClick = { navController.navigate("settings") },
-                                onActorsClick = { navController.navigate("actors") }
+                                onActorsClick = { navController.navigate("actors") },
+                                onGenresClick = { navController.navigate("genres") }
                             )
                         }
                         composable("actors") {
@@ -92,6 +95,36 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("actor/${item.actor.id}")
                                 }
                             )
+                        }
+                        composable("genres") {
+                            GenresScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onGenreClick = { item ->
+                                    navController.navigate("genre/${item.genre.id}")
+                                }
+                            )
+                        }
+                        composable(
+                            route = "genre/{genreId}",
+                            arguments = listOf(navArgument("genreId") { type = androidx.navigation.NavType.LongType })
+                        ) { backStackEntry ->
+                            val genreId = backStackEntry.arguments?.getLong("genreId") ?: 0L
+                            val genre by viewModel.selectedGenre.collectAsState()
+                            LaunchedEffect(genreId) {
+                                viewModel.loadGenre(genreId)
+                            }
+                            genre?.let { g ->
+                                GenreDetailScreen(
+                                    genre = g,
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onMovieClick = { movie ->
+                                        viewModel.selectMovie(movie)
+                                        navController.navigate("detail")
+                                    }
+                                )
+                            }
                         }
                         composable(
                             route = "actor/{actorId}",
