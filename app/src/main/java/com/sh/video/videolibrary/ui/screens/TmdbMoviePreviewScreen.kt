@@ -45,7 +45,12 @@ fun TmdbMoviePreviewScreen(
     val uiState by viewModel.uiState.collectAsState()
     val movieAddedSuccess by viewModel.movieAddedSuccess.collectAsState()
     val movieIdJustAdded by viewModel.movieIdJustAdded.collectAsState()
+    val tmdbPreviewActors by viewModel.tmdbPreviewActors.collectAsState()
     val showAlreadyInCollection = uiState is MainViewModel.UiState.Error
+
+    LaunchedEffect(movie.id, movie.mediaType) {
+        viewModel.loadTmdbPreviewActors(movie.id, movie.mediaType)
+    }
 
     LaunchedEffect(movieAddedSuccess, movieIdJustAdded) {
         if (movieAddedSuccess && movieIdJustAdded != null) {
@@ -99,6 +104,11 @@ fun TmdbMoviePreviewScreen(
             movie.genres?.takeIf { it.isNotEmpty() }?.let { genres ->
                 Text(stringResource(R.string.genres_label, genres.joinToString { it.name }), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
+            }
+            if (tmdbPreviewActors.isNotEmpty()) {
+                Text(stringResource(R.string.cast), style = MaterialTheme.typography.titleSmall)
+                Text(tmdbPreviewActors.joinToString(", "), style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(12.dp))
             }
             movie.overview?.takeIf { it.isNotBlank() }?.let { overview ->
                 Text(stringResource(R.string.description), style = MaterialTheme.typography.titleSmall)

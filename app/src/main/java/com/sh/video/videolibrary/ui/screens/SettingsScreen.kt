@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -37,7 +39,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.ui.MainViewModel
+import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.util.LocaleHelper
+import com.sh.video.videolibrary.util.SettingsHelper
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +80,57 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(24.dp)
         ) {
+            var apiKeyText by remember { mutableStateOf(SettingsHelper.getTmdbApiKey(context)) }
+            var apiKeySaved by remember { mutableStateOf(false) }
+            val app = context.applicationContext as VideoLibraryApp
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_tmdb_api_key),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_tmdb_api_key_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                    OutlinedTextField(
+                        value = apiKeyText,
+                        onValueChange = { apiKeyText = it; apiKeySaved = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        placeholder = { Text(stringResource(R.string.settings_tmdb_api_key_hint)) },
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = {
+                            app.updateTmdbApiKey(apiKeyText)
+                            apiKeySaved = true
+                        },
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) {
+                        Text(stringResource(R.string.save))
+                    }
+                    if (apiKeySaved) {
+                        Text(
+                            text = stringResource(R.string.settings_tmdb_api_key_saved),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             SettingsItem(
                 title = stringResource(R.string.settings_export),
                 subtitle = stringResource(R.string.settings_export_subtitle),

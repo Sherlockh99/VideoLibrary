@@ -2,6 +2,7 @@ package com.sh.video.videolibrary
 
 import android.app.Application
 import com.sh.video.videolibrary.data.remote.TmdbApi
+import com.sh.video.videolibrary.util.SettingsHelper
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -15,7 +16,11 @@ class VideoLibraryApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val apiKey = BuildConfig.TMDB_API_KEY
+        initTmdbApi()
+    }
+
+    fun initTmdbApi() {
+        val apiKey = SettingsHelper.getTmdbApiKey(this)
         val apiKeyInterceptor = Interceptor { chain ->
             val url = chain.request().url.newBuilder()
                 .addQueryParameter("api_key", apiKey)
@@ -29,5 +34,10 @@ class VideoLibraryApp : Application() {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create()
+    }
+
+    fun updateTmdbApiKey(apiKey: String) {
+        SettingsHelper.setTmdbApiKey(this, apiKey)
+        initTmdbApi()
     }
 }

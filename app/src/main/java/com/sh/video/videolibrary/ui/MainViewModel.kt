@@ -54,7 +54,7 @@ enum class StorageFileFilter {
 class MainViewModel(context: Context) : ViewModel() {
 
     private val app = context.applicationContext as VideoLibraryApp
-    private val repository = MovieRepository(context, app.tmdbApi)
+    private val repository = MovieRepository(context) { app.tmdbApi }
 
     private val _libraryFilter = MutableStateFlow(LibraryFilter.ALL)
     val libraryFilter = _libraryFilter.asStateFlow()
@@ -427,6 +427,9 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _selectedTmdbForPreview = MutableStateFlow<TmdbMediaDetails?>(null)
     val selectedTmdbForPreview = _selectedTmdbForPreview.asStateFlow()
 
+    private val _tmdbPreviewActors = MutableStateFlow<List<String>>(emptyList())
+    val tmdbPreviewActors = _tmdbPreviewActors.asStateFlow()
+
     enum class SearchMode { MOVIE, TV }
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
@@ -645,6 +648,13 @@ class MainViewModel(context: Context) : ViewModel() {
 
     fun clearTmdbPreview() {
         _selectedTmdbForPreview.value = null
+        _tmdbPreviewActors.value = emptyList()
+    }
+
+    fun loadTmdbPreviewActors(tmdbId: Long, mediaType: String) {
+        viewModelScope.launch {
+            _tmdbPreviewActors.value = repository.getTmdbCreditsTopActorNames(tmdbId, mediaType)
+        }
     }
 
     private val _movieAddedSuccess = MutableStateFlow(false)

@@ -105,6 +105,10 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_tmdb_api_key">TMDb API key</string>
+    <string name="settings_tmdb_api_key_subtitle">Required for search and movie data. Get it at themoviedb.org/settings/api</string>
+    <string name="settings_tmdb_api_key_hint">Enter your TMDb API key</string>
+    <string name="settings_tmdb_api_key_saved">API key saved</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_subtitle">App interface language</string>
     <string name="language_system">System default</string>

@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -22,19 +20,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        val localPropsFile = rootProject.file("local.properties")
-        val localProps = Properties()
-        if (localPropsFile.exists()) {
-            localPropsFile.inputStream().use { stream ->
-                localProps.load(stream)
-            }
-        }
-        buildConfigField(
-            "String",
-            "TMDB_API_KEY",
-            "\"${localProps.getProperty("TMDB_API_KEY", "YOUR_API_KEY")}\""
-        )
     }
 
     buildTypes {

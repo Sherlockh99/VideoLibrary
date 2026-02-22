@@ -105,6 +105,10 @@
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>
+    <string name="settings_tmdb_api_key">Ключ API TMDb</string>
+    <string name="settings_tmdb_api_key_subtitle">Нужен для поиска и данных о фильмах. Получить: themoviedb.org/settings/api</string>
+    <string name="settings_tmdb_api_key_hint">Введите ключ API TMDb</string>
+    <string name="settings_tmdb_api_key_saved">Ключ API сохранён</string>
     <string name="settings_language">Язык</string>
     <string name="settings_language_subtitle">Язык интерфейса приложения</string>
     <string name="language_system">По умолчанию (система)</string>

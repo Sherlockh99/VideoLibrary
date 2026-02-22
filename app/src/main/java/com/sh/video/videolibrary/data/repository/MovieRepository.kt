@@ -45,8 +45,9 @@ data class ActorWithMovieCount(val actor: ActorEntity, val movieCount: Int)
 
 class MovieRepository(
     private val context: Context,
-    private val tmdbApi: TmdbApi
+    private val tmdbApiProvider: () -> TmdbApi
 ) {
+    private val tmdbApi: TmdbApi get() = tmdbApiProvider()
 
     private val db: AppDatabase = DatabaseProvider.getDatabase(context)
     private val movieDao: MovieDao = db.movieDao()
@@ -122,15 +123,11 @@ class MovieRepository(
         val cast = credits.cast ?: return
         val actorLinks = mutableListOf<Pair<Long, Int>>()
         for (member in cast) {
-            val isMainRole = member.billingOrder < 10 // первые 10 в титрах (order 0–9)
+            if (member.billingOrder >= 10) continue // Загружаем только первых 10 в титрах
             val existingActorId = actorDao.getIdByTmdbPersonId(member.id)
-            val actorId = when {
-                isMainRole -> {
-                    val rowId = actorDao.insert(ActorEntity(tmdbPersonId = member.id, name = member.name))
-                    if (rowId == -1L) existingActorId else rowId
-                }
-                existingActorId != null -> existingActorId // Актёр уже в базе — привязываем к фильму
-                else -> null // После 10-го в титрах и не в базе — пропускаем
+            val actorId = run {
+                val rowId = actorDao.insert(ActorEntity(tmdbPersonId = member.id, name = member.name))
+                if (rowId == -1L) existingActorId else rowId
             }
             if (actorId != null && actorId > 0) {
                 actorLinks.add(actorId to member.billingOrder)
@@ -139,6 +136,22 @@ class MovieRepository(
         if (actorLinks.isNotEmpty()) {
             movieActorDao.setMovieActors(movieId, actorLinks)
         }
+    }
+
+    /** Возвращает имёна первых 10 актёров из credits TMDB (для превью до добавления в базу). */
+    suspend fun getTmdbCreditsTopActorNames(tmdbId: Long, mediaType: String): List<String> {
+        val lang = getTmdbLanguage()
+        val credits = runCatching {
+            when (mediaType) {
+                "movie" -> tmdbApi.getMovieCredits(tmdbId, language = lang)
+                else -> tmdbApi.getTvCredits(tmdbId, language = lang)
+            }
+        }.getOrNull() ?: return emptyList()
+        return (credits.cast ?: emptyList())
+            .filter { it.billingOrder < 10 }
+            .sortedBy { it.billingOrder }
+            .take(10)
+            .map { it.name }
     }
 
     /** Загружает актёров с TMDB для существующего фильма, если в базе их ещё нет. */

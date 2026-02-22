@@ -4,13 +4,11 @@ Android-приложение для управления видеоколлек�
 
 ## Запуск
 
-1. Добавьте API-ключ TMDb в `local.properties`:
-   ```
-   TMDB_API_KEY=ваш_ключ
-   ```
-   Получить ключ: https://www.themoviedb.org/settings/api
+1. Получите API-ключ TMDb: https://www.themoviedb.org/settings/api
 
-2. Соберите и установите:
+2. Введите ключ в настройках приложения (Settings → TMDb API key).
+
+3. Соберите и установите:
    ```
    ./gradlew assembleDebug
    ```
