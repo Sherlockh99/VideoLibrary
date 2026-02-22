@@ -125,6 +125,8 @@
     <!-- Movie detail -->
     <string name="movie_tv_suffix"> (сериал)</string>
     <string name="movie_about_tab">О фильме</string>
+    <string name="movie_refresh">Обновить с TMDb</string>
+    <string name="movie_refresh_subtitle">Загрузить название, описание, жанры на текущем языке</string>
     <string name="movie_files_tab">Файлы</string>
     <string name="movie_categories_tab">Категории</string>
     <string name="cast">В ролях</string>

@@ -505,6 +505,26 @@ class MainViewModel(context: Context) : ViewModel() {
         _movieTopActors.value = emptyList()
     }
 
+    private val _movieRefreshInProgress = MutableStateFlow(false)
+    val movieRefreshInProgress = _movieRefreshInProgress.asStateFlow()
+
+    fun refreshMovieFromTmdb(movieId: Long) {
+        viewModelScope.launch {
+            _movieRefreshInProgress.value = true
+            try {
+                if (repository.refreshMovieFromTmdb(movieId)) {
+                    val updated = repository.getMovieById(movieId)
+                    if (updated != null && _selectedMovie.value?.id == movieId) {
+                        _selectedMovie.value = updated
+                        _movieTopActors.value = repository.getTopActorsByMovieId(movieId, limit = 5)
+                    }
+                }
+            } finally {
+                _movieRefreshInProgress.value = false
+            }
+        }
+    }
+
     fun setLibraryFilter(filter: LibraryFilter) {
         _libraryFilter.value = filter
     }

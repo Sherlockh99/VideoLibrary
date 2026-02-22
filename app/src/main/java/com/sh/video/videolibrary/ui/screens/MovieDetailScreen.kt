@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -91,6 +92,7 @@ fun MovieDetailScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var fileToDelete by remember { mutableStateOf<FileWithStorages?>(null) }
     val movieDeleted by viewModel.movieDeleted.collectAsState()
+    val refreshInProgress by viewModel.movieRefreshInProgress.collectAsState()
 
     LaunchedEffect(movieDeleted) {
         if (movieDeleted) {
@@ -106,6 +108,24 @@ fun MovieDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.refreshMovieFromTmdb(movie.id) },
+                        enabled = !refreshInProgress
+                    ) {
+                        if (refreshInProgress) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.movie_refresh)
+                            )
+                        }
                     }
                 }
             )

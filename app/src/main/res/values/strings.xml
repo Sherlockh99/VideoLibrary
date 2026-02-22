@@ -125,6 +125,8 @@
     <!-- Movie detail -->
     <string name="movie_tv_suffix"> (TV series)</string>
     <string name="movie_about_tab">About</string>
+    <string name="movie_refresh">Refresh from TMDb</string>
+    <string name="movie_refresh_subtitle">Reload title, description, genres in current language</string>
     <string name="movie_files_tab">Files</string>
     <string name="movie_categories_tab">Categories</string>
     <string name="cast">Cast</string>

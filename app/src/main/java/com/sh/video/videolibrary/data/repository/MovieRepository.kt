@@ -167,6 +167,42 @@ class MovieRepository(
         return updated
     }
 
+    /** Обновляет данные фильма/сериала с TMDb (название, описание, жанры на текущем языке). Сохраняет personalRating. */
+    suspend fun refreshMovieFromTmdb(movieId: Long): Boolean {
+        val existing = movieDao.getById(movieId) ?: return false
+        val lang = getTmdbLanguage()
+        val updated = when (existing.mediaType) {
+            "movie" -> {
+                val d = runCatching { tmdbApi.getMovieDetails(existing.tmdbId, language = lang) }.getOrNull() ?: return false
+                existing.copy(
+                    title = d.title,
+                    originalTitle = d.originalTitle ?: "",
+                    genres = d.genres?.joinToString(", ") { it.name } ?: existing.genres,
+                    rating = d.voteAverage ?: existing.rating,
+                    overview = d.overview ?: "",
+                    releaseDate = d.releaseDate ?: "",
+                    posterPath = d.posterPath
+                )
+            }
+            "tv" -> {
+                val d = runCatching { tmdbApi.getTvDetails(existing.tmdbId, language = lang) }.getOrNull() ?: return false
+                existing.copy(
+                    title = d.name,
+                    originalTitle = d.originalName ?: "",
+                    genres = d.genres?.joinToString(", ") { it.name } ?: existing.genres,
+                    rating = d.voteAverage ?: existing.rating,
+                    overview = d.overview ?: "",
+                    releaseDate = d.firstAirDate ?: "",
+                    posterPath = d.posterPath
+                )
+            }
+            else -> return false
+        }
+        movieDao.update(updated)
+        ensureActorsForMovie(movieId, existing.tmdbId, existing.mediaType)
+        return true
+    }
+
     /** Обновляет актёров с TMDB для всей коллекции. Возвращает количество обработанных фильмов. */
     suspend fun refreshActorsForAllMovies(): Int {
         val movies = movieDao.getAllSync()
