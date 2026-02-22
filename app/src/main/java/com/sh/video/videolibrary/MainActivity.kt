@@ -26,6 +26,8 @@ import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.MainViewModelFactory
 import com.sh.video.videolibrary.ui.screens.AboutScreen
+import com.sh.video.videolibrary.ui.screens.ActorDetailScreen
+import com.sh.video.videolibrary.ui.screens.ActorsScreen
 import com.sh.video.videolibrary.ui.screens.CategoriesScreen
 import com.sh.video.videolibrary.ui.screens.CategoryDetailScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
@@ -73,8 +75,39 @@ class MainActivity : ComponentActivity() {
                                 onStoragesClick = { navController.navigate("storages") },
                                 onCategoriesClick = { navController.navigate("categories") },
                                 onSettingsClick = { navController.navigate("settings") },
-                                onAboutClick = { navController.navigate("about") }
+                                onActorsClick = { navController.navigate("actors") }
                             )
+                        }
+                        composable("actors") {
+                            ActorsScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onActorClick = { item ->
+                                    navController.navigate("actor/${item.actor.id}")
+                                }
+                            )
+                        }
+                        composable(
+                            route = "actor/{actorId}",
+                            arguments = listOf(navArgument("actorId") { type = androidx.navigation.NavType.LongType })
+                        ) { backStackEntry ->
+                            val actorId = backStackEntry.arguments?.getLong("actorId") ?: 0L
+                            val actor by viewModel.selectedActor.collectAsState()
+                            LaunchedEffect(actorId) {
+                                viewModel.loadActor(actorId)
+                            }
+                            actor?.let { a ->
+                                ActorDetailScreen(
+                                    actor = a,
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onMovieClick = { movie ->
+                                        viewModel.selectMovie(movie)
+                                        navController.navigate("detail")
+                                    },
+                                    onAddFromTmdb = { navController.navigate("search") }
+                                )
+                            }
                         }
                         composable("about") {
                             AboutScreen(onBack = { navController.popBackStack() })

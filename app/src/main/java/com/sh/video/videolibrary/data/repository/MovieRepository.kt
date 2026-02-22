@@ -2,10 +2,14 @@ package com.sh.video.videolibrary.data.repository
 
 import android.content.Context
 import com.google.gson.Gson
+import com.sh.video.videolibrary.data.local.ActorDao
+import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.AppDatabase
 import com.sh.video.videolibrary.data.local.CategoryDao
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.DatabaseProvider
+import com.sh.video.videolibrary.data.local.MovieActorDao
+import com.sh.video.videolibrary.data.local.MovieActorEntity
 import com.sh.video.videolibrary.data.local.MovieCategoryDao
 import com.sh.video.videolibrary.data.local.MovieCategoryEntity
 import com.sh.video.videolibrary.data.local.MovieDao
@@ -34,6 +38,8 @@ data class StorageWithFileCount(val storage: StorageEntity, val fileCount: Int)
 
 data class CategoryWithMovieCount(val category: CategoryEntity, val movieCount: Int)
 
+data class ActorWithMovieCount(val actor: ActorEntity, val movieCount: Int)
+
 class MovieRepository(
     private val context: Context,
     private val tmdbApi: TmdbApi
@@ -46,6 +52,8 @@ class MovieRepository(
     private val storageFileDao: StorageFileDao = db.storageFileDao()
     private val categoryDao: CategoryDao = db.categoryDao()
     private val movieCategoryDao: MovieCategoryDao = db.movieCategoryDao()
+    private val actorDao: ActorDao = db.actorDao()
+    private val movieActorDao: MovieActorDao = db.movieActorDao()
     private val gson = Gson()
 
     fun getAllMovies(): Flow<List<MovieEntity>> = movieDao.getAllFlow()
@@ -75,6 +83,29 @@ class MovieRepository(
     suspend fun getMovieByTmdbId(tmdbId: Long, mediaType: String = "movie"): MovieEntity? =
         movieDao.getByTmdbIdAndMediaType(tmdbId, mediaType)
 
+    private suspend fun ensureActorsForMovie(movieId: Long, tmdbId: Long, mediaType: String) {
+        val credits = runCatching {
+            when (mediaType) {
+                "movie" -> tmdbApi.getMovieCredits(tmdbId)
+                else -> tmdbApi.getTvCredits(tmdbId)
+            }
+        }.getOrNull() ?: return
+        val cast = credits.cast ?: return
+        val actorIds = mutableListOf<Long>()
+        for (member in cast) {
+            val rowId = actorDao.insert(
+                ActorEntity(tmdbPersonId = member.id, name = member.name)
+            )
+            val actorId = if (rowId == -1L) actorDao.getIdByTmdbPersonId(member.id) else rowId
+            if (actorId != null && actorId > 0) {
+                actorIds.add(actorId)
+            }
+        }
+        if (actorIds.isNotEmpty()) {
+            movieActorDao.setMovieActors(movieId, actorIds)
+        }
+    }
+
     suspend fun addMovie(details: TmdbMovieDetails): Long {
         if (movieDao.existsByTmdbIdAndMediaType(details.id, "movie")) return -1
         val genres = details.genres?.joinToString(", ") { it.name } ?: ""
@@ -91,7 +122,11 @@ class MovieRepository(
             personalRating = null,
             createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
-        return movieDao.insert(entity)
+        val id = movieDao.insert(entity)
+        if (id > 0) {
+            ensureActorsForMovie(id, details.id, "movie")
+        }
+        return id
     }
 
     suspend fun addTvShow(details: TmdbTvDetails): Long {
@@ -110,7 +145,11 @@ class MovieRepository(
             personalRating = null,
             createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
-        return movieDao.insert(entity)
+        val id = movieDao.insert(entity)
+        if (id > 0) {
+            ensureActorsForMovie(id, details.id, "tv")
+        }
+        return id
     }
 
     suspend fun addMedia(details: TmdbMediaDetails): Long = when (details) {
@@ -236,6 +275,20 @@ class MovieRepository(
 
     suspend fun getCategoryIdsByMovieId(movieId: Long): List<Long> =
         movieCategoryDao.getCategoryIdsByMovieId(movieId)
+
+    fun getActorsWithMovieCounts(): Flow<List<ActorWithMovieCount>> = flow {
+        actorDao.getAllFlow().collect { actors ->
+            val withCounts = actors.map { a ->
+                ActorWithMovieCount(a, movieActorDao.getMovieCountByActorId(a.id))
+            }
+            emit(withCounts)
+        }
+    }
+
+    suspend fun getMoviesByActorId(actorId: Long): List<MovieEntity> =
+        movieActorDao.getMoviesByActorId(actorId)
+
+    suspend fun getActorById(id: Long): ActorEntity? = actorDao.getById(id)
 
     suspend fun setMovieCategories(movieId: Long, categoryIds: List<Long>) {
         movieCategoryDao.setMovieCategories(movieId, categoryIds)

@@ -7,9 +7,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.sh.video.videolibrary.VideoLibraryApp
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
+import com.sh.video.videolibrary.data.repository.ActorWithMovieCount
 import com.sh.video.videolibrary.data.repository.CategoryWithMovieCount
 import com.sh.video.videolibrary.data.repository.FileWithStorages
 import com.sh.video.videolibrary.data.repository.StorageWithFileCount
+import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
@@ -136,6 +138,10 @@ class MainViewModel(context: Context) : ViewModel() {
 
     val categories: StateFlow<List<CategoryEntity>> =
         repository.getAllCategories()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val actorsWithMovieCounts: StateFlow<List<ActorWithMovieCount>> =
+        repository.getActorsWithMovieCounts()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _categoryRemoveError = MutableStateFlow<String?>(null)
@@ -303,7 +309,9 @@ class MainViewModel(context: Context) : ViewModel() {
     val categoryMovies = _categoryMovies.asStateFlow()
 
     private var _pendingCategoryIdForNewMovie: Long? = null
+    private var _pendingActorIdForNewMovie: Long? = null
     private var _currentCategoryId: Long = 0
+    private var _currentActorId: Long = 0
 
     private val _returnToCategoryIdAfterAdd = MutableStateFlow<Long?>(null)
     val returnToCategoryIdAfterAdd = _returnToCategoryIdAfterAdd.asStateFlow()
@@ -347,6 +355,34 @@ class MainViewModel(context: Context) : ViewModel() {
         _currentCategoryId = categoryId
         viewModelScope.launch {
             _categoryMovies.value = repository.getMoviesByCategoryId(categoryId)
+        }
+    }
+
+    private val _actorMovies = MutableStateFlow<List<MovieEntity>>(emptyList())
+    val actorMovies = _actorMovies.asStateFlow()
+
+    fun loadActorMovies(actorId: Long) {
+        _currentActorId = actorId
+        viewModelScope.launch {
+            _actorMovies.value = repository.getMoviesByActorId(actorId)
+        }
+    }
+
+    fun setPendingActorIdForNewMovie(actorId: Long) {
+        _pendingActorIdForNewMovie = actorId
+    }
+
+    fun clearPendingActorIdForNewMovie() {
+        _pendingActorIdForNewMovie = null
+    }
+
+    private val _selectedActor = MutableStateFlow<ActorEntity?>(null)
+    val selectedActor = _selectedActor.asStateFlow()
+
+    fun loadActor(actorId: Long) {
+        viewModelScope.launch {
+            _selectedActor.value = repository.getActorById(actorId)
+            _selectedActor.value?.let { loadActorMovies(it.id) }
         }
     }
 
@@ -583,6 +619,12 @@ class MainViewModel(context: Context) : ViewModel() {
                     if (catId == _currentCategoryId) {
                         _categoryMovies.value = repository.getMoviesByCategoryId(catId)
                     }
+                }
+                _pendingActorIdForNewMovie?.let { actorId ->
+                    if (actorId == _currentActorId) {
+                        _actorMovies.value = repository.getMoviesByActorId(actorId)
+                    }
+                    _pendingActorIdForNewMovie = null
                 }
                 _movieIdJustAdded.value = id
                 _movieAddedSuccess.value = true

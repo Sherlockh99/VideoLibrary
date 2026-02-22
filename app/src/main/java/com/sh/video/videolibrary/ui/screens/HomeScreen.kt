@@ -16,8 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalMovies
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,7 +37,7 @@ fun HomeScreen(
     onStoragesClick: () -> Unit,
     onCategoriesClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onAboutClick: () -> Unit = {}
+    onActorsClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -95,10 +95,10 @@ fun HomeScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(
-            title = "О приложении",
-            subtitle = "Информация и атрибуция TMDb",
-            icon = Icons.Default.Info,
-            onClick = onAboutClick
+            title = "Актеры",
+            subtitle = "Актеры из вашей коллекции",
+            icon = Icons.Default.Person,
+            onClick = onActorsClick
         )
     }
 }

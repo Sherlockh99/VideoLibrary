@@ -32,7 +32,24 @@ interface TmdbApi {
         @Path("tv_id") tvId: Long,
         @Query("language") language: String = "ru-RU"
     ): TmdbTvDetails
+
+    @GET("movie/{movie_id}/credits")
+    suspend fun getMovieCredits(@Path("movie_id") movieId: Long): TmdbCreditsResponse
+
+    @GET("tv/{tv_id}/credits")
+    suspend fun getTvCredits(@Path("tv_id") tvId: Long): TmdbCreditsResponse
 }
+
+data class TmdbCreditsResponse(
+    val cast: List<TmdbCastMember>?
+)
+
+data class TmdbCastMember(
+    val id: Long,
+    val name: String,
+    val character: String?,
+    @SerializedName("order") val billingOrder: Int = 0
+)
 
 data class TmdbSearchResponse(
     val results: List<TmdbMovieResult>
