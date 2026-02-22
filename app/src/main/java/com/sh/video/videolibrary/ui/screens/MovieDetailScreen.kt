@@ -128,13 +128,18 @@ fun MovieDetailScreen(
                 )
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(movie.title, style = MaterialTheme.typography.headlineSmall)
                     if (movie.originalTitle.isNotBlank()) {
                         Text(movie.originalTitle, style = MaterialTheme.typography.bodyMedium)
                     }
                     Text("★ ${movie.rating}", style = MaterialTheme.typography.bodyLarge)
                     if (movie.releaseDate.isNotBlank()) {
                         Text(movie.releaseDate.take(4), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (movie.genres.isNotBlank()) {
+                        Text("Жанры: ${movie.genres}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (movieTopActors.isNotEmpty()) {
+                        Text("В ролях: ${movieTopActors.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -163,16 +168,6 @@ fun MovieDetailScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(vertical = 16.dp)
                 ) {
-                    if (movie.genres.isNotBlank()) {
-                        Text("Жанры", style = MaterialTheme.typography.titleSmall)
-                        Text(movie.genres, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(12.dp))
-                    }
-                    if (movieTopActors.isNotEmpty()) {
-                        Text("В ролях", style = MaterialTheme.typography.titleSmall)
-                        Text(movieTopActors.joinToString(", "), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(12.dp))
-                    }
                     if (movie.overview.isNotBlank()) {
                         Text("Описание", style = MaterialTheme.typography.titleSmall)
                         Text(movie.overview, style = MaterialTheme.typography.bodyMedium)
