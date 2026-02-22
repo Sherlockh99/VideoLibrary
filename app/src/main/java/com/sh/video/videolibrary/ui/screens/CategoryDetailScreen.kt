@@ -52,6 +52,7 @@ fun CategoryDetailScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onMovieClick: (MovieEntity) -> Unit,
+    onGenreClick: (Long) -> Unit = {},
     onAddFromTmdb: () -> Unit
 ) {
     val categoryMovies by viewModel.categoryMovies.collectAsState()
@@ -177,20 +178,22 @@ fun CategoryDetailScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(categoryMovies) { (movie, topActors) ->
+                items(categoryMovies) { item ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         MovieCard(
-                            movie = movie,
-                            onClick = { onMovieClick(movie) },
+                            movie = item.movie,
+                            onClick = { onMovieClick(item.movie) },
                             modifier = Modifier.weight(1f),
-                            topActorNames = topActors
+                            topActorNames = item.topActorNames,
+                            genres = item.genres,
+                            onGenreClick = onGenreClick
                         )
                         IconButton(
-                            onClick = { movieToUnlink = movie },
+                            onClick = { movieToUnlink = item.movie },
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(

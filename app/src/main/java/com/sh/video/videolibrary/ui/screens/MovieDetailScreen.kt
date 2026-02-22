@@ -68,7 +68,8 @@ fun MovieDetailScreen(
     movie: MovieEntity,
     viewModel: MainViewModel,
     onBack: () -> Unit,
-    onActorClick: (actorId: Long) -> Unit = {}
+    onActorClick: (actorId: Long) -> Unit = {},
+    onGenreClick: (genreId: Long) -> Unit = {}
 ) {
     val openDetailOnFilesTab by viewModel.openDetailOnFilesTab.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -85,6 +86,7 @@ fun MovieDetailScreen(
     val categories by viewModel.categories.collectAsState()
     val movieCategories by viewModel.movieCategories.collectAsState()
     val movieTopActors by viewModel.movieTopActors.collectAsState()
+    val movieGenres by viewModel.movieGenres.collectAsState()
     var showAddFileDialog by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var categoryToUnlink by remember { mutableStateOf<CategoryEntity?>(null) }
@@ -162,7 +164,25 @@ fun MovieDetailScreen(
                     if (movie.releaseDate.isNotBlank()) {
                         Text(movie.releaseDate.take(4), style = MaterialTheme.typography.bodyMedium)
                     }
-                    if (movie.genres.isNotBlank()) {
+                    if (movieGenres.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            movieGenres.forEachIndexed { index, genre ->
+                                if (index > 0) {
+                                    Text(", ", style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Text(
+                                    text = genre.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { onGenreClick(genre.id) }
+                                )
+                            }
+                        }
+                    } else if (movie.genres.isNotBlank()) {
                         Text(stringResource(R.string.genres_label, movie.genres), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -532,8 +552,8 @@ private fun FileDialog(
                 onClick = {
                     val size = sizeText.toLongOrNull() ?: 0L
                     val ids = selectedStorageIds.toList()
-                    if (isEdit && editingFile != null) {
-                        onSave(editingFile.file.id, name.trim(), size, ids)
+                    if (isEdit) {
+                        onSave(editingFile!!.file.id, name.trim(), size, ids)
                     } else {
                         onAdd(name.trim(), size, ids)
                     }

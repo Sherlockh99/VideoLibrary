@@ -20,6 +20,14 @@ interface MovieGenreDao {
     suspend fun getGenreNamesByMovieId(movieId: Long): List<String>
 
     @Query("""
+        SELECT g.* FROM genres g
+        JOIN movie_genres mg ON g.id = mg.genreId
+        WHERE mg.movieId = :movieId
+        ORDER BY g.name
+    """)
+    suspend fun getGenresByMovieId(movieId: Long): List<GenreEntity>
+
+    @Query("""
         SELECT m.id FROM movies m
         JOIN movie_genres mg ON m.id = mg.movieId
         JOIN genres g ON g.id = mg.genreId

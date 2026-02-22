@@ -42,6 +42,7 @@ fun ActorDetailScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onMovieClick: (MovieEntity) -> Unit,
+    onGenreClick: (Long) -> Unit = {},
     onAddFromTmdb: () -> Unit
 ) {
     val actorMovies by viewModel.actorMovies.collectAsState()
@@ -116,12 +117,14 @@ fun ActorDetailScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(actorMovies) { (movie, topActors) ->
+                items(actorMovies) { item ->
                     MovieCard(
-                        movie = movie,
-                        onClick = { onMovieClick(movie) },
+                        movie = item.movie,
+                        onClick = { onMovieClick(item.movie) },
                         modifier = Modifier.fillMaxWidth(),
-                        topActorNames = topActors
+                        topActorNames = item.topActorNames,
+                        genres = item.genres,
+                        onGenreClick = onGenreClick
                     )
                 }
             }

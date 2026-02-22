@@ -122,7 +122,8 @@ class MainActivity : ComponentActivity() {
                                     onMovieClick = { movie ->
                                         viewModel.selectMovie(movie)
                                         navController.navigate("detail")
-                                    }
+                                    },
+                                    onGenreClick = { genreId -> navController.navigate("genre/$genreId") }
                                 )
                             }
                         }
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
                                         viewModel.selectMovie(movie)
                                         navController.navigate("detail")
                                     },
+                                    onGenreClick = { genreId -> navController.navigate("genre/$genreId") },
                                     onAddFromTmdb = { navController.navigate("search") }
                                 )
                             }
@@ -159,7 +161,8 @@ class MainActivity : ComponentActivity() {
                                     viewModel.selectMovie(movie)
                                     navController.navigate("detail")
                                 },
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onGenreClick = { genreId -> navController.navigate("genre/$genreId") }
                             )
                         }
                         composable("categories") {
@@ -192,6 +195,7 @@ class MainActivity : ComponentActivity() {
                                         viewModel.selectMovie(movie)
                                         navController.navigate("detail")
                                     },
+                                    onGenreClick = { genreId -> navController.navigate("genre/$genreId") },
                                     onAddFromTmdb = {
                                         viewModel.setPendingCategoryForNewMovie(category.id)
                                         navController.navigate("search")
@@ -289,6 +293,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onActorClick = { actorId ->
                                         navController.navigate("actor/$actorId")
+                                    },
+                                    onGenreClick = { genreId ->
+                                        navController.navigate("genre/$genreId")
                                     }
                                 )
                             }

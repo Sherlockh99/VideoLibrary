@@ -51,7 +51,7 @@ fun AddMovieToCategoryDialog(
     var searchQuery by remember { mutableStateOf("") }
     val library by viewModel.library.collectAsState()
     val categoryMovies by viewModel.categoryMovies.collectAsState()
-    val linkedMovieIds = remember(categoryMovies) { categoryMovies.map { it.first.id }.toSet() }
+    val linkedMovieIds = remember(categoryMovies) { categoryMovies.map { it.movie.id }.toSet() }
 
     val filteredLibrary = remember(library, searchQuery, linkedMovieIds) {
         val q = searchQuery.trim().lowercase()

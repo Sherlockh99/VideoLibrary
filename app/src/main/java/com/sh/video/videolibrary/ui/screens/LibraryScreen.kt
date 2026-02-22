@@ -57,7 +57,8 @@ fun LibraryScreen(
     viewModel: MainViewModel,
     onAddClick: () -> Unit,
     onMovieClick: (MovieEntity) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onGenreClick: (Long) -> Unit = {}
 ) {
     val libraryWithActors by viewModel.libraryWithTopActors.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -203,11 +204,13 @@ fun LibraryScreen(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(libraryWithActors) { (movie, topActors) ->
+                            items(libraryWithActors) { item ->
                                 MovieCard(
-                                    movie = movie,
-                                    onClick = { onMovieClick(movie) },
-                                    topActorNames = topActors
+                                    movie = item.movie,
+                                    onClick = { onMovieClick(item.movie) },
+                                    topActorNames = item.topActorNames,
+                                    genres = item.genres,
+                                    onGenreClick = onGenreClick
                                 )
                             }
                         }

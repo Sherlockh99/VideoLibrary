@@ -37,7 +37,8 @@ fun GenreDetailScreen(
     genre: GenreEntity,
     viewModel: MainViewModel,
     onBack: () -> Unit,
-    onMovieClick: (MovieEntity) -> Unit
+    onMovieClick: (MovieEntity) -> Unit,
+    onGenreClick: (Long) -> Unit = {}
 ) {
     val genreMovies by viewModel.genreMovies.collectAsState()
 
@@ -81,12 +82,14 @@ fun GenreDetailScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(genreMovies) { (movie, topActors) ->
+                items(genreMovies) { item ->
                     MovieCard(
-                        movie = movie,
-                        onClick = { onMovieClick(movie) },
+                        movie = item.movie,
+                        onClick = { onMovieClick(item.movie) },
                         modifier = Modifier.fillMaxWidth(),
-                        topActorNames = topActors
+                        topActorNames = item.topActorNames,
+                        genres = item.genres,
+                        onGenreClick = onGenreClick
                     )
                 }
             }

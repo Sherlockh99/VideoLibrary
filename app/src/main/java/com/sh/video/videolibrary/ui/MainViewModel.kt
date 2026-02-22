@@ -16,6 +16,7 @@ import com.sh.video.videolibrary.data.repository.StorageWithFileCount
 import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.GenreEntity
+import com.sh.video.videolibrary.ui.MovieWithActorsAndGenres
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
@@ -53,6 +55,7 @@ enum class StorageFileFilter {
     BY_FILE_NAME
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(context: Context) : ViewModel() {
 
     private val app = context.applicationContext as VideoLibraryApp
@@ -129,12 +132,19 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Коллекция с актёрами в главных ролях (до 5 на фильм) для отображения на карточках. */
-    val libraryWithTopActors: StateFlow<List<Pair<MovieEntity, List<String>>>> = library
+    /** Коллекция с актёрами и жанрами для отображения на карточках. */
+    val libraryWithTopActors: StateFlow<List<MovieWithActorsAndGenres>> = library
         .flatMapLatest { movies ->
             flow {
                 val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
-                emit(movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) })
+                val genreMap = repository.getGenresForMovies(movies.map { it.id })
+                emit(movies.map { movie ->
+                    MovieWithActorsAndGenres(
+                        movie = movie,
+                        topActorNames = actorMap[movie.id] ?: emptyList(),
+                        genres = genreMap[movie.id] ?: emptyList()
+                    )
+                })
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -323,7 +333,7 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieCategories = MutableStateFlow<List<CategoryEntity>>(emptyList())
     val movieCategories = _movieCategories.asStateFlow()
 
-    private val _categoryMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
+    private val _categoryMovies = MutableStateFlow<List<MovieWithActorsAndGenres>>(emptyList())
     val categoryMovies = _categoryMovies.asStateFlow()
 
     private var _pendingCategoryIdForNewMovie: Long? = null
@@ -379,10 +389,13 @@ class MainViewModel(context: Context) : ViewModel() {
     private suspend fun loadCategoryMoviesWithActors(categoryId: Long) {
         val movies = repository.getMoviesByCategoryId(categoryId)
         val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
-        _categoryMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+        val genreMap = repository.getGenresForMovies(movies.map { it.id })
+        _categoryMovies.value = movies.map { movie ->
+            MovieWithActorsAndGenres(movie, actorMap[movie.id] ?: emptyList(), genreMap[movie.id] ?: emptyList())
+        }
     }
 
-    private val _actorMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
+    private val _actorMovies = MutableStateFlow<List<MovieWithActorsAndGenres>>(emptyList())
     val actorMovies = _actorMovies.asStateFlow()
 
     fun loadActorMovies(actorId: Long) {
@@ -390,7 +403,10 @@ class MainViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             val movies = repository.getMoviesByActorId(actorId)
             val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
-            _actorMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+            val genreMap = repository.getGenresForMovies(movies.map { it.id })
+            _actorMovies.value = movies.map { movie ->
+                MovieWithActorsAndGenres(movie, actorMap[movie.id] ?: emptyList(), genreMap[movie.id] ?: emptyList())
+            }
         }
     }
 
@@ -405,7 +421,7 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _selectedActor = MutableStateFlow<ActorEntity?>(null)
     val selectedActor = _selectedActor.asStateFlow()
 
-    private val _genreMovies = MutableStateFlow<List<Pair<MovieEntity, List<String>>>>(emptyList())
+    private val _genreMovies = MutableStateFlow<List<MovieWithActorsAndGenres>>(emptyList())
     val genreMovies = _genreMovies.asStateFlow()
 
     private val _selectedGenre = MutableStateFlow<GenreEntity?>(null)
@@ -415,7 +431,10 @@ class MainViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             val movies = repository.getMoviesByGenreId(genreId)
             val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
-            _genreMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+            val genreMap = repository.getGenresForMovies(movies.map { it.id })
+            _genreMovies.value = movies.map { movie ->
+                MovieWithActorsAndGenres(movie, actorMap[movie.id] ?: emptyList(), genreMap[movie.id] ?: emptyList())
+            }
         }
     }
 
@@ -489,6 +508,9 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _movieTopActors = MutableStateFlow<List<ActorEntity>>(emptyList())
     val movieTopActors = _movieTopActors.asStateFlow()
 
+    private val _movieGenres = MutableStateFlow<List<GenreEntity>>(emptyList())
+    val movieGenres = _movieGenres.asStateFlow()
+
     private val _movieFilesForAddDialog = MutableStateFlow<List<FileWithStorages>>(emptyList())
     val movieFilesForAddDialog = _movieFilesForAddDialog.asStateFlow()
 
@@ -511,6 +533,7 @@ class MainViewModel(context: Context) : ViewModel() {
             _movieCategories.value = repository.getCategoriesByMovieId(movie.id)
             repository.loadActorsFromTmdbIfEmpty(movie.id, movie.tmdbId, movie.mediaType)
             _movieTopActors.value = repository.getTopActorsByMovieId(movie.id, limit = 5)
+            _movieGenres.value = repository.getGenresByMovieId(movie.id)
         }
     }
 
@@ -523,6 +546,7 @@ class MainViewModel(context: Context) : ViewModel() {
                 _movieCategories.value = repository.getCategoriesByMovieId(movieId)
                 repository.loadActorsFromTmdbIfEmpty(movie.id, movie.tmdbId, movie.mediaType)
                 _movieTopActors.value = repository.getTopActorsByMovieId(movieId, limit = 5)
+                _movieGenres.value = repository.getGenresByMovieId(movieId)
                 onSelected?.invoke()
             }
         }
@@ -533,6 +557,7 @@ class MainViewModel(context: Context) : ViewModel() {
         _movieFiles.value = emptyList()
         _movieCategories.value = emptyList()
         _movieTopActors.value = emptyList()
+        _movieGenres.value = emptyList()
     }
 
     private val _movieRefreshInProgress = MutableStateFlow(false)
@@ -547,6 +572,7 @@ class MainViewModel(context: Context) : ViewModel() {
                     if (updated != null && _selectedMovie.value?.id == movieId) {
                         _selectedMovie.value = updated
                         _movieTopActors.value = repository.getTopActorsByMovieId(movieId, limit = 5)
+                        _movieGenres.value = repository.getGenresByMovieId(movieId)
                     }
                 }
             } finally {
@@ -721,7 +747,10 @@ class MainViewModel(context: Context) : ViewModel() {
                     if (actorId == _currentActorId) {
                         val movies = repository.getMoviesByActorId(actorId)
                         val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
-                        _actorMovies.value = movies.map { movie -> movie to (actorMap[movie.id] ?: emptyList()) }
+                        val genreMap = repository.getGenresForMovies(movies.map { it.id })
+                        _actorMovies.value = movies.map { movie ->
+                            MovieWithActorsAndGenres(movie, actorMap[movie.id] ?: emptyList(), genreMap[movie.id] ?: emptyList())
+                        }
                     }
                     _pendingActorIdForNewMovie = null
                 }

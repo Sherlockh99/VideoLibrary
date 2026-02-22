@@ -3,12 +3,14 @@ package com.sh.video.videolibrary.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -22,16 +24,20 @@ import com.sh.video.videolibrary.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.sh.video.videolibrary.data.local.GenreEntity
 import com.sh.video.videolibrary.data.local.MovieEntity
 
 const val TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MovieCard(
     movie: MovieEntity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    topActorNames: List<String> = emptyList()
+    topActorNames: List<String> = emptyList(),
+    genres: List<GenreEntity> = emptyList(),
+    onGenreClick: (Long) -> Unit = {}
 ) {
     Card(
         modifier = modifier
@@ -67,7 +73,24 @@ fun MovieCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (movie.genres.isNotBlank()) {
+                if (genres.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        genres.forEachIndexed { index, genre ->
+                            if (index > 0) {
+                                Text(", ", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                text = genre.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { onGenreClick(genre.id) }
+                            )
+                        }
+                    }
+                } else if (movie.genres.isNotBlank()) {
                     Text(
                         text = movie.genres,
                         style = MaterialTheme.typography.bodySmall,
