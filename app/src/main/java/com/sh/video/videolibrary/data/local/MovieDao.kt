@@ -34,7 +34,11 @@ interface MovieDao {
     @Query("""
         SELECT * FROM movies 
         WHERE (:title IS NULL OR title LIKE '%' || :title || '%' OR originalTitle LIKE '%' || :title || '%')
-        AND (:genre IS NULL OR genres LIKE '%' || :genre || '%')
+        AND (:genre IS NULL OR id IN (
+            SELECT mg.movieId FROM movie_genres mg
+            JOIN genres g ON g.id = mg.genreId
+            WHERE g.name LIKE '%' || :genre || '%'
+        ))
         AND (:minRating IS NULL OR rating >= :minRating)
         AND (:maxRating IS NULL OR rating <= :maxRating)
         AND (:description IS NULL OR overview LIKE '%' || :description || '%')

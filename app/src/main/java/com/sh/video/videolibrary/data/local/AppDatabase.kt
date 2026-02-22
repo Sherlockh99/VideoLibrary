@@ -1,11 +1,14 @@
 package com.sh.video.videolibrary.data.local
 
 import android.content.Context
+import android.database.Cursor
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteProgram
+import androidx.sqlite.db.SupportSQLiteQuery
 
 @Database(
     entities = [
@@ -16,9 +19,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CategoryEntity::class,
         MovieCategoryEntity::class,
         ActorEntity::class,
-        MovieActorEntity::class
+        MovieActorEntity::class,
+        GenreEntity::class,
+        MovieGenreEntity::class
     ],
-    version = 8
+    version = 9
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun movieDao(): MovieDao
@@ -29,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun movieCategoryDao(): MovieCategoryDao
     abstract fun actorDao(): ActorDao
     abstract fun movieActorDao(): MovieActorDao
+    abstract fun genreDao(): GenreDao
+    abstract fun movieGenreDao(): MovieGenreDao
 }
 
 private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -146,6 +153,63 @@ private val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+private val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS genres (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                tmdbGenreId INTEGER,
+                name TEXT NOT NULL
+            )
+        """)
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_genres_tmdbGenreId ON genres(tmdbGenreId)")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS movie_genres (
+                movieId INTEGER NOT NULL,
+                genreId INTEGER NOT NULL,
+                PRIMARY KEY(movieId, genreId),
+                FOREIGN KEY(movieId) REFERENCES movies(id) ON DELETE CASCADE,
+                FOREIGN KEY(genreId) REFERENCES genres(id) ON DELETE CASCADE
+            )
+        """)
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_movie_genres_movieId ON movie_genres(movieId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_movie_genres_genreId ON movie_genres(genreId)")
+
+        // Migrate existing genres string to new tables
+        val moviesCursor: Cursor = db.query(object : SupportSQLiteQuery {
+            override val sql: String get() = "SELECT id, genres FROM movies"
+            override val argCount: Int get() = 0
+            override fun bindTo(statement: SupportSQLiteProgram) {}
+        })
+        val genreNameToId = mutableMapOf<String, Long>()
+        try {
+            while (moviesCursor.moveToNext()) {
+                val movieId = moviesCursor.getLong(0)
+                val genresStr = moviesCursor.getString(1) ?: ""
+                val names = genresStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+                for (name in names) {
+                    val genreId = genreNameToId.getOrPut(name) {
+                        db.execSQL("INSERT INTO genres (tmdbGenreId, name) VALUES (NULL, ?)", arrayOf(name))
+                        val idCursor: Cursor = db.query(object : SupportSQLiteQuery {
+                            override val sql: String get() = "SELECT id FROM genres WHERE name = ? ORDER BY id DESC LIMIT 1"
+                            override val argCount: Int get() = 1
+                            override fun bindTo(statement: SupportSQLiteProgram) {
+                                statement.bindString(1, name)
+                            }
+                        })
+                        idCursor.use {
+                            if (it.moveToFirst()) it.getLong(0) else 0L
+                        }
+                    }
+                    db.execSQL("INSERT OR IGNORE INTO movie_genres (movieId, genreId) VALUES (?, ?)", arrayOf(movieId, genreId))
+                }
+            }
+        } finally {
+            moviesCursor.close()
+        }
+    }
+}
+
 object DatabaseProvider {
     private var _database: AppDatabase? = null
 
@@ -155,7 +219,7 @@ object DatabaseProvider {
             AppDatabase::class.java,
             "videolibrary.db"
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
             .also { _database = it }
     }

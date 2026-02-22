@@ -7,6 +7,9 @@ import com.google.gson.Gson
 import com.sh.video.videolibrary.data.local.ActorDao
 import com.sh.video.videolibrary.data.local.ActorEntity
 import com.sh.video.videolibrary.data.local.AppDatabase
+import com.sh.video.videolibrary.data.local.GenreDao
+import com.sh.video.videolibrary.data.local.GenreEntity
+import com.sh.video.videolibrary.data.local.MovieGenreDao
 import com.sh.video.videolibrary.data.local.CategoryDao
 import com.sh.video.videolibrary.data.local.CategoryEntity
 import com.sh.video.videolibrary.data.local.DatabaseProvider
@@ -25,6 +28,7 @@ import com.sh.video.videolibrary.data.local.StorageFileEntity
 import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.local.FileOnStorageRow
 import com.sh.video.videolibrary.data.remote.TmdbApi
+import com.sh.video.videolibrary.data.remote.TmdbGenre
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.remote.TmdbTvDetails
@@ -58,6 +62,8 @@ class MovieRepository(
     private val movieCategoryDao: MovieCategoryDao = db.movieCategoryDao()
     private val actorDao: ActorDao = db.actorDao()
     private val movieActorDao: MovieActorDao = db.movieActorDao()
+    private val genreDao: GenreDao = db.genreDao()
+    private val movieGenreDao: MovieGenreDao = db.movieGenreDao()
     private val gson = Gson()
 
     private fun getTmdbLanguage(): String {
@@ -138,6 +144,34 @@ class MovieRepository(
         }
     }
 
+    private suspend fun ensureGenresForMovie(movieId: Long, tmdbGenres: List<TmdbGenre>?) {
+        if (tmdbGenres.isNullOrEmpty()) return
+        val genreIds = tmdbGenres.mapNotNull { tg ->
+            val existingId = genreDao.getIdByTmdbGenreId(tg.id)
+            val id = existingId ?: run {
+                val rowId = genreDao.insert(GenreEntity(tmdbGenreId = tg.id, name = tg.name))
+                if (rowId == -1L) genreDao.getIdByTmdbGenreId(tg.id) else rowId
+            }
+            id?.takeIf { it > 0 }
+        }.distinct()
+        if (genreIds.isNotEmpty()) movieGenreDao.setMovieGenres(movieId, genreIds)
+    }
+
+    /** Парсит строку жанров и связывает фильм с таблицей жанров (для импорта). */
+    private suspend fun ensureGenresFromString(movieId: Long, genresStr: String) {
+        if (genresStr.isBlank()) return
+        val names = genresStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val genreIds = names.mapNotNull { name ->
+            val existing = genreDao.getByName(name)
+            if (existing != null) existing.id
+            else {
+                val rowId = genreDao.insert(GenreEntity(tmdbGenreId = null, name = name))
+                if (rowId == -1L) genreDao.getByName(name)?.id else rowId
+            }
+        }
+        if (genreIds.isNotEmpty()) movieGenreDao.setMovieGenres(movieId, genreIds)
+    }
+
     /** Возвращает имёна первых 10 актёров из credits TMDB (для превью до добавления в базу). */
     suspend fun getTmdbCreditsTopActorNames(tmdbId: Long, mediaType: String): List<String> {
         val lang = getTmdbLanguage()
@@ -184,9 +218,11 @@ class MovieRepository(
     suspend fun refreshMovieFromTmdb(movieId: Long): Boolean {
         val existing = movieDao.getById(movieId) ?: return false
         val lang = getTmdbLanguage()
+        var genresToSync: List<TmdbGenre>? = null
         val updated = when (existing.mediaType) {
             "movie" -> {
                 val d = runCatching { tmdbApi.getMovieDetails(existing.tmdbId, language = lang) }.getOrNull() ?: return false
+                genresToSync = d.genres
                 existing.copy(
                     title = d.title,
                     originalTitle = d.originalTitle ?: "",
@@ -199,6 +235,7 @@ class MovieRepository(
             }
             "tv" -> {
                 val d = runCatching { tmdbApi.getTvDetails(existing.tmdbId, language = lang) }.getOrNull() ?: return false
+                genresToSync = d.genres
                 existing.copy(
                     title = d.name,
                     originalTitle = d.originalName ?: "",
@@ -213,6 +250,7 @@ class MovieRepository(
         }
         movieDao.update(updated)
         ensureActorsForMovie(movieId, existing.tmdbId, existing.mediaType)
+        genresToSync?.let { ensureGenresForMovie(movieId, it) }
         return true
     }
 
@@ -244,6 +282,7 @@ class MovieRepository(
         val id = movieDao.insert(entity)
         if (id > 0) {
             ensureActorsForMovie(id, details.id, "movie")
+            ensureGenresForMovie(id, details.genres)
         }
         return id
     }
@@ -267,6 +306,7 @@ class MovieRepository(
         val id = movieDao.insert(entity)
         if (id > 0) {
             ensureActorsForMovie(id, details.id, "tv")
+            ensureGenresForMovie(id, details.genres)
         }
         return id
     }
@@ -528,6 +568,7 @@ class MovieRepository(
                                 movieCategoryDao.insert(MovieCategoryEntity(movieId = existing.id, categoryId = cat.id))
                             }
                         }
+                        ensureGenresFromString(existing.id, m.genres)
                         added++
                     } else skipped++
                 } else skipped++
@@ -561,6 +602,7 @@ class MovieRepository(
                     movieCategoryDao.insert(MovieCategoryEntity(movieId = id, categoryId = cat.id))
                 }
             }
+            ensureGenresFromString(id, m.genres)
             added++
         }
         return Pair(added, skipped)
