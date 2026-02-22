@@ -2,7 +2,6 @@ package com.sh.video.videolibrary.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,9 +40,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.ui.MainViewModel
-import com.sh.video.videolibrary.ui.components.FullScreenImageDialog
 import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_BASE
-import com.sh.video.videolibrary.ui.components.TMDB_IMAGE_ORIGINAL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,14 +136,6 @@ private fun TmdbSearchResultCard(
     item: TmdbMediaDetails,
     onClick: () -> Unit
 ) {
-    var showFullScreenPoster by remember { mutableStateOf(false) }
-    if (showFullScreenPoster && item.posterPath != null) {
-        FullScreenImageDialog(
-            imageUrl = TMDB_IMAGE_ORIGINAL + item.posterPath,
-            contentDescription = item.title,
-            onDismiss = { showFullScreenPoster = false }
-        )
-    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -154,25 +143,15 @@ private fun TmdbSearchResultCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(modifier = Modifier.padding(8.dp)) {
-            Box(
+            AsyncImage(
+                model = if (item.posterPath != null) TMDB_IMAGE_BASE + item.posterPath else null,
+                contentDescription = item.title,
                 modifier = Modifier
                     .padding(4.dp)
                     .width(60.dp)
-                    .height(90.dp)
-                    .then(
-                        if (item.posterPath != null) Modifier.clickable { showFullScreenPoster = true }
-                        else Modifier
-                    )
-            ) {
-                AsyncImage(
-                    model = if (item.posterPath != null) TMDB_IMAGE_BASE + item.posterPath else null,
-                    contentDescription = item.title,
-                    modifier = Modifier
-                        .width(60.dp)
-                        .height(90.dp),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                    .height(90.dp),
+                contentScale = ContentScale.Crop
+            )
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(item.title, style = MaterialTheme.typography.titleMedium)
                 if (item.mediaType == "tv") {
