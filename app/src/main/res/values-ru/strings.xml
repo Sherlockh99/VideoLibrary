@@ -44,6 +44,12 @@
     <string name="filter_by_tmdb_rating">По рейтингу TMDb</string>
     <string name="filter_by_personal_rating">По моей оценке</string>
     <string name="filter_by_storage">По хранилищу</string>
+    <string name="library_sort">Сортировка</string>
+    <string name="sort_by_name">По названию</string>
+    <string name="sort_by_year">По году</string>
+    <string name="sort_by_rating">По рейтингу TMDb</string>
+    <string name="sort_by_personal_rating">По моей оценке</string>
+    <string name="sort_by_category_count">По кол-ву категорий</string>
     <string name="placeholder_movie_title">Название фильма</string>
     <string name="placeholder_genre">Жанр</string>
     <string name="placeholder_min_rating">Мин. рейтинг (0–10)</string>

@@ -47,6 +47,14 @@ enum class LibraryFilter {
     BY_STORAGE
 }
 
+enum class LibrarySort {
+    NAME,
+    YEAR,
+    RATING,
+    PERSONAL_RATING,
+    CATEGORY_COUNT
+}
+
 enum class StorageFileFilter {
     ALL,
     BY_MOVIE_TITLE,
@@ -73,6 +81,9 @@ class MainViewModel(context: Context) : ViewModel() {
 
     private val _filterTmdbMinRating = MutableStateFlow<Double?>(null)
     val filterTmdbMinRating = _filterTmdbMinRating.asStateFlow()
+
+    private val _librarySort = MutableStateFlow(LibrarySort.NAME)
+    val librarySort = _librarySort.asStateFlow()
 
     val library: StateFlow<List<MovieEntity>> = combine(
         _libraryFilter,
@@ -134,8 +145,8 @@ class MainViewModel(context: Context) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Коллекция с актёрами, жанрами и количеством категорий для отображения на карточках. */
-    val libraryWithTopActors: StateFlow<List<MovieWithActorsAndGenres>> = library
-        .flatMapLatest { movies ->
+    val libraryWithTopActors: StateFlow<List<MovieWithActorsAndGenres>> = combine(
+        library.flatMapLatest { movies ->
             flow {
                 val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
                 val genreMap = repository.getGenresForMovies(movies.map { it.id })
@@ -149,8 +160,21 @@ class MainViewModel(context: Context) : ViewModel() {
                     )
                 })
             }
+        },
+        _librarySort
+    ) { list, sort ->
+        when (sort) {
+            LibrarySort.NAME -> list.sortedBy { it.movie.title.lowercase() }
+            LibrarySort.YEAR -> list.sortedByDescending { it.movie.releaseDate }
+            LibrarySort.RATING -> list.sortedByDescending { it.movie.rating }
+            LibrarySort.PERSONAL_RATING -> list.sortedByDescending { it.movie.personalRating ?: 0 }
+            LibrarySort.CATEGORY_COUNT -> list.sortedByDescending { it.categoryCount }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setLibrarySort(sort: LibrarySort) {
+        _librarySort.value = sort
+    }
 
     val storages: StateFlow<List<StorageEntity>> = repository.getAllStorages()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.sh.video.videolibrary.R
 import com.sh.video.videolibrary.data.local.MovieEntity
 import com.sh.video.videolibrary.ui.LibraryFilter
+import com.sh.video.videolibrary.ui.LibrarySort
 import com.sh.video.videolibrary.ui.MainViewModel
 import com.sh.video.videolibrary.ui.components.MovieCard
 
@@ -49,6 +51,14 @@ private fun getLibraryFilterLabelRes(filter: LibraryFilter): Int = when (filter)
     LibraryFilter.BY_TMDB_RATING -> R.string.filter_by_tmdb_rating
     LibraryFilter.BY_PERSONAL_RATING -> R.string.filter_by_personal_rating
     LibraryFilter.BY_STORAGE -> R.string.filter_by_storage
+}
+
+private fun getLibrarySortLabelRes(sort: LibrarySort): Int = when (sort) {
+    LibrarySort.NAME -> R.string.sort_by_name
+    LibrarySort.YEAR -> R.string.sort_by_year
+    LibrarySort.RATING -> R.string.sort_by_rating
+    LibrarySort.PERSONAL_RATING -> R.string.sort_by_personal_rating
+    LibrarySort.CATEGORY_COUNT -> R.string.sort_by_category_count
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +73,7 @@ fun LibraryScreen(
     val libraryWithActors by viewModel.libraryWithTopActors.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val libraryFilter by viewModel.libraryFilter.collectAsState()
+    val librarySort by viewModel.librarySort.collectAsState()
     val filterQuery by viewModel.filterQuery.collectAsState()
     val filterPersonalRating by viewModel.filterPersonalRating.collectAsState()
     val filterTmdbMinRating by viewModel.filterTmdbMinRating.collectAsState()
@@ -105,6 +116,30 @@ fun LibraryScreen(
                                             }
                                             else -> {}
                                         }
+                                    }
+                                )
+                            }
+                            androidx.compose.material3.HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.library_sort), style = androidx.compose.material3.MaterialTheme.typography.labelMedium) },
+                                onClick = { },
+                                enabled = false
+                            )
+                            LibrarySort.entries.forEach { sort ->
+                                val selected = librarySort == sort
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(stringResource(getLibrarySortLabelRes(sort)))
+                                            if (selected) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                                Text("✓", style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.setLibrarySort(sort)
+                                        filterMenuExpanded = false
                                     }
                                 )
                             }

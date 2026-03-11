@@ -44,6 +44,12 @@
     <string name="filter_by_tmdb_rating">By TMDb rating</string>
     <string name="filter_by_personal_rating">By my rating</string>
     <string name="filter_by_storage">By storage</string>
+    <string name="library_sort">Sort</string>
+    <string name="sort_by_name">By name</string>
+    <string name="sort_by_year">By year</string>
+    <string name="sort_by_rating">By TMDb rating</string>
+    <string name="sort_by_personal_rating">By my rating</string>
+    <string name="sort_by_category_count">By category count</string>
     <string name="placeholder_movie_title">Movie title</string>
     <string name="placeholder_genre">Genre</string>
     <string name="placeholder_min_rating">Min. rating (0–10)</string>
