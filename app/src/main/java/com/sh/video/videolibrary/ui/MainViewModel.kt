@@ -133,17 +133,19 @@ class MainViewModel(context: Context) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Коллекция с актёрами и жанрами для отображения на карточках. */
+    /** Коллекция с актёрами, жанрами и количеством категорий для отображения на карточках. */
     val libraryWithTopActors: StateFlow<List<MovieWithActorsAndGenres>> = library
         .flatMapLatest { movies ->
             flow {
                 val actorMap = repository.getTopActorNamesByMovieIds(movies.map { it.id }, limit = 5)
                 val genreMap = repository.getGenresForMovies(movies.map { it.id })
+                val categoryCountMap = repository.getCategoryCountByMovieIds(movies.map { it.id })
                 emit(movies.map { movie ->
                     MovieWithActorsAndGenres(
                         movie = movie,
                         topActorNames = actorMap[movie.id] ?: emptyList(),
-                        genres = genreMap[movie.id] ?: emptyList()
+                        genres = genreMap[movie.id] ?: emptyList(),
+                        categoryCount = categoryCountMap[movie.id] ?: 0
                     )
                 })
             }

@@ -210,6 +210,7 @@ fun LibraryScreen(
                                     onClick = { onMovieClick(item.movie) },
                                     topActorNames = item.topActorNames,
                                     genres = item.genres,
+                                    categoryCount = item.categoryCount,
                                     onGenreClick = onGenreClick
                                 )
                             }

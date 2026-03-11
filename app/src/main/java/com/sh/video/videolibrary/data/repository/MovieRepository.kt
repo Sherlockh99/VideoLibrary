@@ -500,6 +500,11 @@ class MovieRepository(
         return movieIds.associateWith { movieGenreDao.getGenresByMovieId(it) }
     }
 
+    suspend fun getCategoryCountByMovieIds(movieIds: List<Long>): Map<Long, Int> {
+        if (movieIds.isEmpty()) return emptyMap()
+        return movieIds.associateWith { movieCategoryDao.getCategoryIdsByMovieId(it).size }
+    }
+
     /** Возвращает до limit актёров в главных ролях для фильма (по порядку в титрах). */
     suspend fun getTopActorsByMovieId(movieId: Long, limit: Int = 5): List<ActorEntity> {
         val rows = movieActorDao.getActorsForMovies(listOf(movieId))

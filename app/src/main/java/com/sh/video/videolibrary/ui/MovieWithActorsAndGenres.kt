@@ -6,5 +6,6 @@ import com.sh.video.videolibrary.data.local.MovieEntity
 data class MovieWithActorsAndGenres(
     val movie: MovieEntity,
     val topActorNames: List<String>,
-    val genres: List<GenreEntity>
+    val genres: List<GenreEntity>,
+    val categoryCount: Int = 0
 )
