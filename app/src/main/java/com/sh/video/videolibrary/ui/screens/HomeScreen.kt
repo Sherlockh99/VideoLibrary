@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocalMovies
@@ -43,7 +44,8 @@ fun HomeScreen(
     onCategoriesClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onActorsClick: () -> Unit = {},
-    onGenresClick: () -> Unit = {}
+    onGenresClick: () -> Unit = {},
+    onImportFromArticleClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -92,6 +94,13 @@ fun HomeScreen(
             subtitle = stringResource(R.string.home_categories_subtitle),
             icon = Icons.Default.Category,
             onClick = onCategoriesClick
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        HomeLinkCard(
+            title = stringResource(R.string.home_import_article),
+            subtitle = stringResource(R.string.home_import_article_subtitle),
+            icon = Icons.Default.Article,
+            onClick = onImportFromArticleClick
         )
         Spacer(modifier = Modifier.height(16.dp))
         HomeLinkCard(

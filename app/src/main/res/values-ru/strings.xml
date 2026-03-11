@@ -17,6 +17,8 @@
     <string name="home_actors_subtitle">Актеры из вашей коллекции</string>
     <string name="home_genres">Жанры</string>
     <string name="home_genres_subtitle">Жанры из вашей коллекции</string>
+    <string name="home_import_article">Импорт из статьи</string>
+    <string name="home_import_article_subtitle">Импорт фильмов по ссылкам iXBT и др.</string>
 
     <!-- Common -->
     <string name="back">Назад</string>
@@ -238,6 +240,21 @@
     <!-- Actor detail -->
     <string name="no_movies_with_actor">Нет фильмов с этим актером в коллекции</string>
     <string name="add_from_tmdb_hint">Нажмите + чтобы добавить фильм или сериал с TMDb</string>
+
+    <!-- Article import -->
+    <string name="import_from_article_title">Импорт из статьи</string>
+    <string name="import_article_url_label">URL статьи</string>
+    <string name="import_article_category_label">Категория</string>
+    <string name="import_article_new_category">Или создать категорию</string>
+    <string name="import_article_type_label">Тип</string>
+    <string name="import_article_analyze">Анализировать</string>
+    <string name="import_article_parsing">Парсинг статьи…</string>
+    <string name="import_article_resolving">Поиск на TMDb…</string>
+    <string name="import_article_results_count">Найдено: %d</string>
+    <string name="import_article_not_found">Не найден на TMDb</string>
+    <string name="import_article_save_selected">Загрузить выбранные (%d)</string>
+    <string name="import_article_no_titles">В статье не найдено названий фильмов</string>
+    <string name="import_article_no_category">Укажите или создайте категорию</string>
 
     <!-- About -->
     <string name="about_title">О приложении</string>

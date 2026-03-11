@@ -33,6 +33,7 @@ import com.sh.video.videolibrary.ui.screens.ActorsScreen
 import com.sh.video.videolibrary.ui.screens.GenreDetailScreen
 import com.sh.video.videolibrary.ui.screens.GenresScreen
 import com.sh.video.videolibrary.ui.screens.CategoriesScreen
+import com.sh.video.videolibrary.ui.screens.ImportFromArticleScreen
 import com.sh.video.videolibrary.ui.screens.CategoryDetailScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
 import com.sh.video.videolibrary.ui.screens.LibraryScreen
@@ -84,7 +85,17 @@ class MainActivity : ComponentActivity() {
                                 onCategoriesClick = { navController.navigate("categories") },
                                 onSettingsClick = { navController.navigate("settings") },
                                 onActorsClick = { navController.navigate("actors") },
-                                onGenresClick = { navController.navigate("genres") }
+                                onGenresClick = { navController.navigate("genres") },
+                                onImportFromArticleClick = { navController.navigate("import_article") }
+                            )
+                        }
+                        composable("import_article") {
+                            ImportFromArticleScreen(
+                                viewModel = viewModel,
+                                onBack = {
+                                    viewModel.resetArticleImport()
+                                    navController.popBackStack()
+                                }
                             )
                         }
                         composable("actors") {

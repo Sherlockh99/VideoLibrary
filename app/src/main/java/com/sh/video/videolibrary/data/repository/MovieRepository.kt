@@ -33,8 +33,11 @@ import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.remote.TmdbTvDetails
 import com.sh.video.videolibrary.export.ExportFormat
+import com.sh.video.videolibrary.util.ArticleParser
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -108,6 +111,11 @@ class MovieRepository(
 
     suspend fun searchTmdbTv(query: String) =
         tmdbApi.searchTv(query = query, language = getTmdbLanguage())
+
+    /** Парсит статью по URL и возвращает список названий фильмов/сериалов из заголовков. */
+    suspend fun parseArticleForMovieTitles(url: String): Result<List<String>> = withContext(Dispatchers.IO) {
+        ArticleParser.parseMovieTitles(url)
+    }
 
     suspend fun getTmdbMovieDetails(movieId: Long) =
         tmdbApi.getMovieDetails(movieId, language = getTmdbLanguage())
@@ -316,6 +324,24 @@ class MovieRepository(
     suspend fun addMedia(details: TmdbMediaDetails): Long = when (details) {
         is TmdbMediaDetails.Movie -> addMovie(details.data)
         is TmdbMediaDetails.Tv -> addTvShow(details.data)
+    }
+
+    /**
+     * Добавляет фильм/сериал в коллекцию (если ещё нет) и привязывает к категории.
+     * Если уже есть — только добавляет категорию.
+     * @return id фильма в базе или -1 при ошибке
+     */
+    suspend fun addMediaWithCategory(details: TmdbMediaDetails, categoryId: Long): Long {
+        val id = addMedia(details)
+        val finalId = when {
+            id > 0 -> id
+            else -> getMovieByTmdbId(details.id, details.mediaType)?.id ?: return -1
+        }
+        val currentIds = getCategoryIdsByMovieId(finalId)
+        if (categoryId !in currentIds) {
+            setMovieCategories(finalId, currentIds + categoryId)
+        }
+        return finalId
     }
 
     suspend fun updatePersonalRating(id: Long, rating: Int) {

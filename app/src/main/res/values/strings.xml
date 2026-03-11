@@ -17,6 +17,8 @@
     <string name="home_actors_subtitle">Actors from your collection</string>
     <string name="home_genres">Genres</string>
     <string name="home_genres_subtitle">Genres from your collection</string>
+    <string name="home_import_article">Import from article</string>
+    <string name="home_import_article_subtitle">Import movies from iXBT and similar links</string>
 
     <!-- Common -->
     <string name="back">Back</string>
@@ -250,6 +252,21 @@
     <string name="size_mb">%.1f MB</string>
     <string name="size_kb">%.1f KB</string>
     <string name="size_bytes">%d B</string>
+
+    <!-- Article import -->
+    <string name="import_from_article_title">Import from article</string>
+    <string name="import_article_url_label">Article URL</string>
+    <string name="import_article_category_label">Category</string>
+    <string name="import_article_new_category">Or create new category</string>
+    <string name="import_article_type_label">Type</string>
+    <string name="import_article_analyze">Analyze</string>
+    <string name="import_article_parsing">Parsing article…</string>
+    <string name="import_article_resolving">Resolving with TMDb…</string>
+    <string name="import_article_results_count">Found: %d items</string>
+    <string name="import_article_not_found">Not found on TMDb</string>
+    <string name="import_article_save_selected">Save selected (%d)</string>
+    <string name="import_article_no_titles">No movie titles found in article</string>
+    <string name="import_article_no_category">Select or create a category</string>
 
     <!-- ViewModel errors (used with context.getString) -->
     <string name="error_search">Search error</string>

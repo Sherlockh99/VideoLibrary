@@ -22,6 +22,7 @@ import com.sh.video.videolibrary.data.local.StorageEntity
 import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.repository.MovieRepository
+import com.sh.video.videolibrary.util.ArticleParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -884,6 +885,171 @@ class MainViewModel(context: Context) : ViewModel() {
     sealed class ActorNamesRefreshResult {
         data class Success(val updatedCount: Int) : ActorNamesRefreshResult()
         data class Failure(val message: String) : ActorNamesRefreshResult()
+    }
+
+    // === Article import ===
+    sealed class ArticleImportState {
+        object Idle : ArticleImportState()
+        object Parsing : ArticleImportState()
+        object Resolving : ArticleImportState()
+        object Ready : ArticleImportState()
+        object Saving : ArticleImportState()
+        data class Error(val message: String) : ArticleImportState()
+    }
+
+    sealed class ArticleImportSaveResult {
+        data class Success(val added: Int, val skipped: Int) : ArticleImportSaveResult()
+        data class Failure(val message: String) : ArticleImportSaveResult()
+    }
+
+    private val _articleImportUrl = MutableStateFlow("")
+    val articleImportUrl = _articleImportUrl.asStateFlow()
+
+    private val _articleImportCategoryId = MutableStateFlow<Long?>(null)
+    val articleImportCategoryId = _articleImportCategoryId.asStateFlow()
+
+    private val _articleImportCategoryNameForNew = MutableStateFlow("")
+    val articleImportCategoryNameForNew = _articleImportCategoryNameForNew.asStateFlow()
+
+    private val _articleImportMediaType = MutableStateFlow("movie")
+    val articleImportMediaType = _articleImportMediaType.asStateFlow()
+
+    private val _articleImportItems = MutableStateFlow<List<com.sh.video.videolibrary.ui.screens.ArticleImportItem>>(emptyList())
+    val articleImportItems = _articleImportItems.asStateFlow()
+
+    private val _articleImportState = MutableStateFlow<ArticleImportState>(ArticleImportState.Idle)
+    val articleImportState = _articleImportState.asStateFlow()
+
+    private val _articleImportSaveResult = MutableStateFlow<ArticleImportSaveResult?>(null)
+    val articleImportSaveResult = _articleImportSaveResult.asStateFlow()
+
+    private val _articleImportDetailItem = MutableStateFlow<com.sh.video.videolibrary.ui.screens.ArticleImportItem?>(null)
+    val articleImportDetailItem = _articleImportDetailItem.asStateFlow()
+
+    fun setArticleImportUrl(url: String) {
+        _articleImportUrl.value = url
+        _articleImportSaveResult.value = null
+    }
+
+    fun setArticleImportCategoryId(id: Long?) {
+        _articleImportCategoryId.value = id
+        if (id != null) _articleImportCategoryNameForNew.value = ""
+    }
+
+    fun setArticleImportCategoryNameForNew(name: String) {
+        _articleImportCategoryNameForNew.value = name
+        if (name.isNotBlank()) _articleImportCategoryId.value = null
+    }
+
+    fun setArticleImportMediaType(type: String) {
+        _articleImportMediaType.value = type
+    }
+
+    fun setArticleImportItemChecked(parsedTitle: String, checked: Boolean) {
+        _articleImportItems.value = _articleImportItems.value.map {
+            if (it.parsedTitle == parsedTitle) it.copy(isChecked = checked) else it
+        }
+    }
+
+    fun selectArticleImportItemForDetail(item: com.sh.video.videolibrary.ui.screens.ArticleImportItem) {
+        _articleImportDetailItem.value = item
+    }
+
+    fun clearArticleImportDetail() {
+        _articleImportDetailItem.value = null
+    }
+
+    fun analyzeArticleForImport() {
+        viewModelScope.launch {
+            _articleImportState.value = ArticleImportState.Parsing
+            _articleImportSaveResult.value = null
+            try {
+                val result = repository.parseArticleForMovieTitles(_articleImportUrl.value.trim())
+                val titles = result.getOrElse {
+                    _articleImportState.value = ArticleImportState.Error(it.message ?: "Parse error")
+                    return@launch
+                }
+                if (titles.isEmpty()) {
+                    _articleImportState.value = ArticleImportState.Error(app.getString(R.string.import_article_no_titles))
+                    return@launch
+                }
+                _articleImportState.value = ArticleImportState.Resolving
+                val mediaType = _articleImportMediaType.value
+                val items = titles.map { parsedTitle ->
+                    val searchQuery = ArticleParser.stripYearForSearch(parsedTitle)
+                    val details = runCatching {
+                        when (mediaType) {
+                            "tv" -> {
+                                val resp = repository.searchTmdbTv(searchQuery)
+                                resp.results.firstOrNull()?.let { r ->
+                                    repository.getTmdbTvDetails(r.id)
+                                }?.let { TmdbMediaDetails.Tv(it) }
+                            }
+                            else -> {
+                                val resp = repository.searchTmdbMovies(searchQuery)
+                                resp.results.firstOrNull()?.let { r ->
+                                    repository.getTmdbMovieDetails(r.id)
+                                }?.let { TmdbMediaDetails.Movie(it) }
+                            }
+                        }
+                    }.getOrNull()
+                    com.sh.video.videolibrary.ui.screens.ArticleImportItem(
+                        parsedTitle = parsedTitle,
+                        tmdbDetails = details,
+                        isChecked = details != null,
+                        isLoading = false
+                    )
+                }
+                _articleImportItems.value = items
+                _articleImportState.value = ArticleImportState.Ready
+            } catch (e: Exception) {
+                _articleImportState.value = ArticleImportState.Error(e.message ?: app.getString(R.string.error_generic))
+            }
+        }
+    }
+
+    fun saveArticleImportSelected() {
+        viewModelScope.launch {
+            val categoryId = _articleImportCategoryId.value
+            val categoryName = _articleImportCategoryNameForNew.value.trim()
+            val effectiveCategoryId = when {
+                categoryId != null -> categoryId
+                categoryName.isNotBlank() -> repository.addCategory(categoryName)
+                else -> {
+                    _articleImportSaveResult.value = ArticleImportSaveResult.Failure(app.getString(R.string.import_article_no_category))
+                    return@launch
+                }
+            }
+            _articleImportState.value = ArticleImportState.Saving
+            _articleImportSaveResult.value = null
+            try {
+                var added = 0
+                var skipped = 0
+                for (item in _articleImportItems.value.filter { it.isChecked && it.tmdbDetails != null }) {
+                    val id = repository.addMediaWithCategory(item.tmdbDetails!!, effectiveCategoryId)
+                    if (id > 0) added++ else skipped++
+                }
+                _articleImportSaveResult.value = ArticleImportSaveResult.Success(added, skipped)
+                _articleImportState.value = ArticleImportState.Ready
+            } catch (e: Exception) {
+                _articleImportState.value = ArticleImportState.Ready
+                _articleImportSaveResult.value = ArticleImportSaveResult.Failure(e.message ?: app.getString(R.string.error_generic))
+            }
+        }
+    }
+
+    fun clearArticleImportSaveResult() {
+        _articleImportSaveResult.value = null
+    }
+
+    fun resetArticleImport() {
+        _articleImportUrl.value = ""
+        _articleImportCategoryId.value = null
+        _articleImportCategoryNameForNew.value = ""
+        _articleImportItems.value = emptyList()
+        _articleImportState.value = ArticleImportState.Idle
+        _articleImportSaveResult.value = null
+        _articleImportDetailItem.value = null
     }
 
     // ViewModel needs Context - we hold it weakly
