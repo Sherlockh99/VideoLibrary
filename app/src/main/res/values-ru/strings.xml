@@ -254,7 +254,10 @@
     <string name="import_article_not_found">Не найден на TMDb</string>
     <string name="import_article_save_selected">Загрузить выбранные (%d)</string>
     <string name="import_article_no_titles">В статье не найдено названий фильмов</string>
-    <string name="import_article_no_category">Укажите или создайте категорию</string>
+    <string name="import_article_no_category">Введите название категории</string>
+    <string name="import_article_category_from_page">Из заголовка страницы</string>
+    <string name="import_article_results_title">Результаты импорта</string>
+    <string name="import_article_add_from_tmdb">Добавить из TMDb</string>
 
     <!-- About -->
     <string name="about_title">О приложении</string>

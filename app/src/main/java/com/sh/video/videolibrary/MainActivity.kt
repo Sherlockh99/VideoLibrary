@@ -33,6 +33,7 @@ import com.sh.video.videolibrary.ui.screens.ActorsScreen
 import com.sh.video.videolibrary.ui.screens.GenreDetailScreen
 import com.sh.video.videolibrary.ui.screens.GenresScreen
 import com.sh.video.videolibrary.ui.screens.CategoriesScreen
+import com.sh.video.videolibrary.ui.screens.ImportArticleResultsScreen
 import com.sh.video.videolibrary.ui.screens.ImportFromArticleScreen
 import com.sh.video.videolibrary.ui.screens.CategoryDetailScreen
 import com.sh.video.videolibrary.ui.screens.HomeScreen
@@ -95,6 +96,24 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     viewModel.resetArticleImport()
                                     navController.popBackStack()
+                                },
+                                onNavigateToResults = { navController.navigate("import_article_results") }
+                            )
+                        }
+                        composable("import_article_results") {
+                            ImportArticleResultsScreen(
+                                viewModel = viewModel,
+                                onBack = {
+                                    viewModel.resetArticleImport()
+                                    navController.popBackStack("home", inclusive = false)
+                                },
+                                onAddFromTmdb = {
+                                    viewModel.setPendingAddToArticleImport(true)
+                                    viewModel.setSearchMode(
+                                        if (viewModel.articleImportMediaType.value == "tv")
+                                            MainViewModel.SearchMode.TV else MainViewModel.SearchMode.MOVIE
+                                    )
+                                    navController.navigate("search")
                                 }
                             )
                         }
@@ -260,12 +279,21 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("search") {
+                            val pendingAddToArticle by viewModel.pendingAddToArticleImport.collectAsState()
                             SearchTmdbScreen(
                                 viewModel = viewModel,
-                                onBack = { navController.popBackStack() },
+                                onBack = {
+                                    viewModel.setPendingAddToArticleImport(false)
+                                    navController.popBackStack()
+                                },
                                 onMovieSelected = { movie ->
-                                    viewModel.selectTmdbForPreview(movie)
-                                    navController.navigate("tmdb_preview")
+                                    if (pendingAddToArticle) {
+                                        viewModel.addArticleImportItemFromTmdb(movie)
+                                        navController.popBackStack()
+                                    } else {
+                                        viewModel.selectTmdbForPreview(movie)
+                                        navController.navigate("tmdb_preview")
+                                    }
                                 }
                             )
                         }

@@ -5,6 +5,14 @@ import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
 
 /**
+ * Результат парсинга статьи: названия фильмов и заголовок страницы для категории.
+ */
+data class ArticleParseResult(
+    val movieTitles: List<String>,
+    val pageTitle: String
+)
+
+/**
  * Парсер статей с подборками фильмов/сериалов.
  * Поддерживает форматы iXBT Live (заголовки h2/h3 вида "Название (год)").
  */
@@ -14,17 +22,35 @@ object ArticleParser {
     private val TITLE_WITH_YEAR = Regex("""^(.+?)\s*\((\d{4})\)\s*$""")
 
     /**
-     * Загружает страницу по URL и извлекает названия фильмов/сериалов из заголовков.
-     * Ищет заголовки h2, h3 с паттерном "Название (год)".
-     * @return список строк вида "Название (год)" или пустой список при ошибке
+     * Загружает страницу по URL и извлекает названия фильмов/сериалов из заголовков,
+     * а также заголовок страницы для использования в качестве названия категории.
      */
-    fun parseMovieTitles(url: String): Result<List<String>> = runCatching {
+    fun parseArticle(url: String): Result<ArticleParseResult> = runCatching {
         val doc = Jsoup.connect(url)
             .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
             .timeout(15000)
             .get()
 
-        extractTitlesFromDocument(doc)
+        val titles = extractTitlesFromDocument(doc)
+        val pageTitle = extractPageTitle(doc)
+        ArticleParseResult(movieTitles = titles, pageTitle = pageTitle)
+    }
+
+    private fun extractPageTitle(doc: Document): String {
+        // Сначала пробуем h1 (основной заголовок статьи)
+        val h1 = doc.select("h1").first()?.text()?.trim()
+        if (!h1.isNullOrBlank()) return cleanPageTitle(h1)
+        // Иначе берём из <title>, часто формат "Заголовок / Раздел / Сайт"
+        val title = doc.title().trim()
+        return cleanPageTitle(title)
+    }
+
+    private fun cleanPageTitle(raw: String): String {
+        return raw
+            .substringBefore(" / ")
+            .substringBefore(" | ")
+            .trim()
+            .take(150)
     }
 
     /**

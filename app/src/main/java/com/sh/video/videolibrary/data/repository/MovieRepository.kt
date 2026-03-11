@@ -33,6 +33,7 @@ import com.sh.video.videolibrary.data.remote.TmdbMediaDetails
 import com.sh.video.videolibrary.data.remote.TmdbMovieDetails
 import com.sh.video.videolibrary.data.remote.TmdbTvDetails
 import com.sh.video.videolibrary.export.ExportFormat
+import com.sh.video.videolibrary.util.ArticleParseResult
 import com.sh.video.videolibrary.util.ArticleParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -112,9 +113,9 @@ class MovieRepository(
     suspend fun searchTmdbTv(query: String) =
         tmdbApi.searchTv(query = query, language = getTmdbLanguage())
 
-    /** Парсит статью по URL и возвращает список названий фильмов/сериалов из заголовков. */
-    suspend fun parseArticleForMovieTitles(url: String): Result<List<String>> = withContext(Dispatchers.IO) {
-        ArticleParser.parseMovieTitles(url)
+    /** Парсит статью по URL: названия фильмов и заголовок страницы для категории. */
+    suspend fun parseArticle(url: String): Result<ArticleParseResult> = withContext(Dispatchers.IO) {
+        ArticleParser.parseArticle(url)
     }
 
     suspend fun getTmdbMovieDetails(movieId: Long) =

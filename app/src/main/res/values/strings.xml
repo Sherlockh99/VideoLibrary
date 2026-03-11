@@ -266,7 +266,10 @@
     <string name="import_article_not_found">Not found on TMDb</string>
     <string name="import_article_save_selected">Save selected (%d)</string>
     <string name="import_article_no_titles">No movie titles found in article</string>
-    <string name="import_article_no_category">Select or create a category</string>
+    <string name="import_article_no_category">Enter category name</string>
+    <string name="import_article_category_from_page">From page title</string>
+    <string name="import_article_results_title">Import results</string>
+    <string name="import_article_add_from_tmdb">Add from TMDb</string>
 
     <!-- ViewModel errors (used with context.getString) -->
     <string name="error_search">Search error</string>

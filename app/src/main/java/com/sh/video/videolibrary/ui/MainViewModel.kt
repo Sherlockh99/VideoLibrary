@@ -905,11 +905,9 @@ class MainViewModel(context: Context) : ViewModel() {
     private val _articleImportUrl = MutableStateFlow("")
     val articleImportUrl = _articleImportUrl.asStateFlow()
 
-    private val _articleImportCategoryId = MutableStateFlow<Long?>(null)
-    val articleImportCategoryId = _articleImportCategoryId.asStateFlow()
-
-    private val _articleImportCategoryNameForNew = MutableStateFlow("")
-    val articleImportCategoryNameForNew = _articleImportCategoryNameForNew.asStateFlow()
+    /** Название категории: после парсинга заполняется заголовком страницы, пользователь может редактировать. */
+    private val _articleImportCategoryName = MutableStateFlow("")
+    val articleImportCategoryName = _articleImportCategoryName.asStateFlow()
 
     private val _articleImportMediaType = MutableStateFlow("movie")
     val articleImportMediaType = _articleImportMediaType.asStateFlow()
@@ -931,23 +929,17 @@ class MainViewModel(context: Context) : ViewModel() {
         _articleImportSaveResult.value = null
     }
 
-    fun setArticleImportCategoryId(id: Long?) {
-        _articleImportCategoryId.value = id
-        if (id != null) _articleImportCategoryNameForNew.value = ""
-    }
-
-    fun setArticleImportCategoryNameForNew(name: String) {
-        _articleImportCategoryNameForNew.value = name
-        if (name.isNotBlank()) _articleImportCategoryId.value = null
+    fun setArticleImportCategoryName(name: String) {
+        _articleImportCategoryName.value = name
     }
 
     fun setArticleImportMediaType(type: String) {
         _articleImportMediaType.value = type
     }
 
-    fun setArticleImportItemChecked(parsedTitle: String, checked: Boolean) {
+    fun setArticleImportItemChecked(itemId: String, checked: Boolean) {
         _articleImportItems.value = _articleImportItems.value.map {
-            if (it.parsedTitle == parsedTitle) it.copy(isChecked = checked) else it
+            if (it.id == itemId) it.copy(isChecked = checked) else it
         }
     }
 
@@ -964,18 +956,25 @@ class MainViewModel(context: Context) : ViewModel() {
             _articleImportState.value = ArticleImportState.Parsing
             _articleImportSaveResult.value = null
             try {
-                val result = repository.parseArticleForMovieTitles(_articleImportUrl.value.trim())
-                val titles = result.getOrElse {
-                    _articleImportState.value = ArticleImportState.Error(it.message ?: "Parse error")
+                val result = repository.parseArticle(_articleImportUrl.value.trim())
+                if (result.isFailure) {
+                    _articleImportState.value = ArticleImportState.Error(
+                        result.exceptionOrNull()?.message ?: app.getString(R.string.error_generic)
+                    )
                     return@launch
                 }
+                val parseResult = result.getOrThrow()
+                val titles = parseResult.movieTitles
                 if (titles.isEmpty()) {
                     _articleImportState.value = ArticleImportState.Error(app.getString(R.string.import_article_no_titles))
                     return@launch
                 }
+                // Заполняем поле категории заголовком страницы
+                _articleImportCategoryName.value = parseResult.pageTitle
                 _articleImportState.value = ArticleImportState.Resolving
                 val mediaType = _articleImportMediaType.value
-                val items = titles.map { parsedTitle ->
+                val items = mutableListOf<com.sh.video.videolibrary.ui.screens.ArticleImportItem>()
+                for ((index, parsedTitle) in titles.withIndex()) {
                     val searchQuery = ArticleParser.stripYearForSearch(parsedTitle)
                     val details = runCatching {
                         when (mediaType) {
@@ -993,11 +992,14 @@ class MainViewModel(context: Context) : ViewModel() {
                             }
                         }
                     }.getOrNull()
-                    com.sh.video.videolibrary.ui.screens.ArticleImportItem(
-                        parsedTitle = parsedTitle,
-                        tmdbDetails = details,
-                        isChecked = details != null,
-                        isLoading = false
+                    items.add(
+                        com.sh.video.videolibrary.ui.screens.ArticleImportItem(
+                            id = "article_${index}_$parsedTitle",
+                            parsedTitle = parsedTitle,
+                            tmdbDetails = details,
+                            isChecked = details != null,
+                            isLoading = false
+                        )
                     )
                 }
                 _articleImportItems.value = items
@@ -1010,23 +1012,20 @@ class MainViewModel(context: Context) : ViewModel() {
 
     fun saveArticleImportSelected() {
         viewModelScope.launch {
-            val categoryId = _articleImportCategoryId.value
-            val categoryName = _articleImportCategoryNameForNew.value.trim()
-            val effectiveCategoryId = when {
-                categoryId != null -> categoryId
-                categoryName.isNotBlank() -> repository.addCategory(categoryName)
-                else -> {
-                    _articleImportSaveResult.value = ArticleImportSaveResult.Failure(app.getString(R.string.import_article_no_category))
-                    return@launch
-                }
+            val categoryName = _articleImportCategoryName.value.trim()
+            if (categoryName.isBlank()) {
+                _articleImportSaveResult.value = ArticleImportSaveResult.Failure(app.getString(R.string.import_article_no_category))
+                return@launch
             }
+            // Создаём категорию при сохранении (или получаем существующую)
+            val categoryId = repository.addCategory(categoryName)
             _articleImportState.value = ArticleImportState.Saving
             _articleImportSaveResult.value = null
             try {
                 var added = 0
                 var skipped = 0
                 for (item in _articleImportItems.value.filter { it.isChecked && it.tmdbDetails != null }) {
-                    val id = repository.addMediaWithCategory(item.tmdbDetails!!, effectiveCategoryId)
+                    val id = repository.addMediaWithCategory(item.tmdbDetails!!, categoryId)
                     if (id > 0) added++ else skipped++
                 }
                 _articleImportSaveResult.value = ArticleImportSaveResult.Success(added, skipped)
@@ -1042,14 +1041,37 @@ class MainViewModel(context: Context) : ViewModel() {
         _articleImportSaveResult.value = null
     }
 
+    private val _pendingAddToArticleImport = MutableStateFlow(false)
+    val pendingAddToArticleImport = _pendingAddToArticleImport.asStateFlow()
+
+    fun setPendingAddToArticleImport(value: Boolean) {
+        _pendingAddToArticleImport.value = value
+    }
+
+    /** Добавляет фильм/сериал из TMDB в список импорта (ручное добавление). */
+    fun addArticleImportItemFromTmdb(details: TmdbMediaDetails) {
+        val title = details.title
+        val item = com.sh.video.videolibrary.ui.screens.ArticleImportItem(
+            id = "manual_${details.id}_${details.mediaType}",
+            parsedTitle = title,
+            tmdbDetails = details,
+            isChecked = true,
+            isLoading = false
+        )
+        if (_articleImportItems.value.none { it.id == item.id }) {
+            _articleImportItems.value = _articleImportItems.value + item
+        }
+        _pendingAddToArticleImport.value = false
+    }
+
     fun resetArticleImport() {
         _articleImportUrl.value = ""
-        _articleImportCategoryId.value = null
-        _articleImportCategoryNameForNew.value = ""
+        _articleImportCategoryName.value = ""
         _articleImportItems.value = emptyList()
         _articleImportState.value = ArticleImportState.Idle
         _articleImportSaveResult.value = null
         _articleImportDetailItem.value = null
+        _pendingAddToArticleImport.value = false
     }
 
     // ViewModel needs Context - we hold it weakly
